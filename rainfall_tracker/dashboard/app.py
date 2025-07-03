@@ -7,18 +7,44 @@ from datetime import datetime
 LOG_FILE = 'rainfall_log.csv'
 BUILDING_FILE = 'buildings.csv'
 
+import os
+
 @st.cache_data
 def load_data():
+    # Load rainfall log
     if os.path.exists(LOG_FILE):
-        df = pd.read_csv(LOG_FILE, parse_dates=["date"])
+        try:
+            df = pd.read_csv(LOG_FILE, parse_dates=["date"])
+        except Exception as e:
+            st.error(f"Error reading {LOG_FILE}: {e}")
+            df = pd.DataFrame(columns=["date", "building_name", "rainfall_mm", "water_harvested_litres"])
     else:
+        st.warning(f"{LOG_FILE} not found. Starting with empty data.")
         df = pd.DataFrame(columns=["date", "building_name", "rainfall_mm", "water_harvested_litres"])
 
-    buildings = pd.read_csv(BUILDING_FILE)
+    # Load building metadata
+    if os.path.exists(BUILDING_FILE):
+        try:
+            buildings = pd.read_csv(BUILDING_FILE)
+        except Exception as e:
+            st.error(f"Error reading {BUILDING_FILE}: {e}")
+            buildings = pd.DataFrame(columns=["building_name"])
+    else:
+        st.warning(f"{BUILDING_FILE} not found. Building list will be empty.")
+        buildings = pd.DataFrame(columns=["building_name"])
+
     return df, buildings
+
 
 # Load data
 df, buildings = load_data()
+if df.empty:
+    st.error("Rainfall data is empty. Please upload or check the file.")
+    st.stop()
+
+if buildings.empty:
+    st.warning("Building list is empty. Some charts may not display correctly.")
+
 
 st.set_page_config(page_title="Campus Rainwater Harvesting", layout="wide")
 st.title("🌧️ Rainwater Harvesting Dashboard - IUST Campus")
