@@ -68,8 +68,14 @@ building_df = df[df["building_name"] == selected]
 total_water = building_df["water_harvested_litres"].sum()
 avg_rainfall = building_df["rainfall_mm"].mean()
 
-st.metric("💧 Total Harvested Water (Litres)", f"{total_water:,.0f}")
-st.metric("🌧️ Average Daily Rainfall (mm)", f"{avg_rainfall:.2f}")
+if not building_df.empty:
+    total_water = building_df["water_harvested_litres"].sum()
+    avg_rainfall = building_df["rainfall_mm"].mean()
+    st.metric("💧 Total Harvested Water (Litres)", f"{total_water:,.0f}")
+    st.metric("🌧️ Average Daily Rainfall (mm)", f"{avg_rainfall:.2f}")
+else:
+    st.metric("💧 Total Harvested Water (Litres)", "-")
+    st.metric("🌧️ Average Daily Rainfall (mm)", "-")
 
 # Monthly Summary
 df["month"] = df["date"].dt.to_period("M")
@@ -81,53 +87,82 @@ monthly_summary = (
 monthly_summary["month"] = monthly_summary["month"].astype(str)
 
 st.subheader("📅 Monthly Summary")
-fig1 = px.bar(
-    monthly_summary,
-    x="month",
-    y="water_harvested_litres",
-    title="Monthly Water Harvested",
-    labels={"water_harvested_litres": "Litres", "month": "Month"},
-    color_discrete_sequence=["teal"]
-)
-st.plotly_chart(fig1, use_container_width=True)
+if not building_df.empty:
+    df["month"] = df["date"].dt.to_period("M")
+    monthly_summary = (
+        building_df.groupby("month")[["rainfall_mm", "water_harvested_litres"]]
+        .sum()
+        .reset_index()
+    )
+    monthly_summary["month"] = monthly_summary["month"].astype(str)
+    
+    fig1 = px.bar(
+        monthly_summary,
+        x="month",
+        y="water_harvested_litres",
+        title="Monthly Water Harvested",
+        labels={"water_harvested_litres": "Litres", "month": "Month"},
+        color_discrete_sequence=["teal"]
+    )
+    st.plotly_chart(fig1, use_container_width=True)
+else:
+    st.info("No data available for monthly summary.")
 
 # Daily Graph
 st.subheader("📈 Daily Rainfall & Water Harvested")
-fig2 = px.line(
-    building_df,
-    x="date",
-    y=["rainfall_mm", "water_harvested_litres"],
-    labels={"value": "Amount", "variable": "Type"},
-    title="Daily Trends",
-)
-st.plotly_chart(fig2, use_container_width=True)
+if not building_df.empty:
+    fig2 = px.line(
+        building_df,
+        x="date",
+        y=["rainfall_mm", "water_harvested_litres"],
+        labels={"value": "Amount", "variable": "Type"},
+        title="Daily Trends",
+    )
+    st.plotly_chart(fig2, use_container_width=True)
+else:
+    st.info("No daily data to display.")
+
 
 # Building Comparison
 st.subheader("🏢 Compare Buildings")
-compare_df = (
-    df.groupby("building_name")[["rainfall_mm", "water_harvested_litres"]]
-    .sum()
-    .reset_index()
-)
-fig3 = px.bar(
-    compare_df,
-    x="building_name",
-    y="water_harvested_litres",
-    title="Total Water Harvested by Building",
-    labels={"water_harvested_litres": "Litres"},
-    color_discrete_sequence=["indianred"]
-)
-st.plotly_chart(fig3, use_container_width=True)
+if not df.empty:
+    compare_df = (
+        df.groupby("building_name")[["rainfall_mm", "water_harvested_litres"]]
+        .sum()
+        .reset_index()
+    )
+    fig3 = px.bar(
+        compare_df,
+        x="building_name",
+        y="water_harvested_litres",
+        title="Total Water Harvested by Building",
+        labels={"water_harvested_litres": "Litres"},
+        color_discrete_sequence=["indianred"]
+    )
+    st.plotly_chart(fig3, use_container_width=True)
+else:
+    st.info("No building comparison data available.")
+
 
 # Download button
 st.subheader("⬇️ Download Building Data")
-csv = building_df.to_csv(index=False).encode('utf-8')
-st.download_button(
-    label="Download as CSV",
-    data=csv,
-    file_name=f"{selected}_rainfall_data.csv",
-    mime='text/csv',
-)
+if not building_df.empty:
+    csv = building_df.to_csv(index=False).encode('utf-8')
+    st.download_button(
+        label="Download as CSV",
+        data=csv,
+        file_name=f"{selected}_rainfall_data.csv",
+        mime='text/csv',
+    )
+else:
+    st.write("No data available to download.")
+
+with st.expander("📋 Show Raw Data"):
+    if not building_df.empty:
+        st.dataframe(building_df)
+    else:
+        st.write("No data to display.")
+
 
 # Raw data table
 with st.expander("📋 Show Raw Data"):
