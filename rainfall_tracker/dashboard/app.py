@@ -4,8 +4,8 @@ import plotly.express as px
 import os
 from datetime import datetime
 
-LOG_FILE = '../data/rainfall_log.csv'
-BUILDING_FILE = '../data/buildings.csv'
+LOG_FILE = 'rainfall_log.csv'
+BUILDING_FILE = 'buildings.csv'
 
 @st.cache_data
 def load_data():
