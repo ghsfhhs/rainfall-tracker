@@ -7,15 +7,16 @@ LOG_FILE = '../data/rainfall_log.csv'
 BUILDING_FILE = '../data/buildings.csv'
 
 @st.cache_data
+@st.cache_data
 def load_data():
-    import os
-if os.path.exists(LOG_FILE):
-    df = pd.read_csv(LOG_FILE, parse_dates=["date"])
-else:
-    df = pd.DataFrame(columns=["date", "building_name", "rainfall_mm", "water_harvested_litres"])
+    if os.path.exists(LOG_FILE):
+        df = pd.read_csv(LOG_FILE, parse_dates=["date"])
+    else:
+        df = pd.DataFrame(columns=["date", "building_name", "rainfall_mm", "water_harvested_litres"])
 
     buildings = pd.read_csv(BUILDING_FILE)
     return df, buildings
+
 
 df, buildings = load_data()
 
