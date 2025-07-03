@@ -1,12 +1,12 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import os
 from datetime import datetime
 
 LOG_FILE = '../data/rainfall_log.csv'
 BUILDING_FILE = '../data/buildings.csv'
 
-@st.cache_data
 @st.cache_data
 def load_data():
     if os.path.exists(LOG_FILE):
@@ -17,28 +17,35 @@ def load_data():
     buildings = pd.read_csv(BUILDING_FILE)
     return df, buildings
 
-
+# Load data
 df, buildings = load_data()
 
 st.set_page_config(page_title="Campus Rainwater Harvesting", layout="wide")
 st.title("🌧️ Rainwater Harvesting Dashboard - IUST Campus")
 
+# Dropdown or QR-based building selection
 building_list = sorted(df["building_name"].unique())
-
 query_building = st.query_params.get("building")
-if query_building and query_building in building_list:
-    selected = query_building
-else:
-    selected = st.selectbox("Select Building", building_list)
 
+if query_building in building_list:
+    selected = query_building
+elif building_list:
+    selected = st.selectbox("Select Building", building_list)
+else:
+    st.warning("No building data available.")
+    st.stop()
+
+# Filter data
 building_df = df[df["building_name"] == selected]
 
+# Stats
 total_water = building_df["water_harvested_litres"].sum()
 avg_rainfall = building_df["rainfall_mm"].mean()
 
 st.metric("💧 Total Harvested Water (Litres)", f"{total_water:,.0f}")
 st.metric("🌧️ Average Daily Rainfall (mm)", f"{avg_rainfall:.2f}")
 
+# Monthly Summary
 df["month"] = df["date"].dt.to_period("M")
 monthly_summary = (
     building_df.groupby("month")[["rainfall_mm", "water_harvested_litres"]]
@@ -58,6 +65,7 @@ fig1 = px.bar(
 )
 st.plotly_chart(fig1, use_container_width=True)
 
+# Daily Graph
 st.subheader("📈 Daily Rainfall & Water Harvested")
 fig2 = px.line(
     building_df,
@@ -68,6 +76,7 @@ fig2 = px.line(
 )
 st.plotly_chart(fig2, use_container_width=True)
 
+# Building Comparison
 st.subheader("🏢 Compare Buildings")
 compare_df = (
     df.groupby("building_name")[["rainfall_mm", "water_harvested_litres"]]
@@ -84,6 +93,7 @@ fig3 = px.bar(
 )
 st.plotly_chart(fig3, use_container_width=True)
 
+# Download button
 st.subheader("⬇️ Download Building Data")
 csv = building_df.to_csv(index=False).encode('utf-8')
 st.download_button(
@@ -93,5 +103,7 @@ st.download_button(
     mime='text/csv',
 )
 
+# Raw data table
 with st.expander("📋 Show Raw Data"):
     st.dataframe(building_df)
+
