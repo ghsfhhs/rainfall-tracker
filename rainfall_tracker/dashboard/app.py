@@ -169,9 +169,11 @@ with st.expander("📋 Show Raw Data"):
     st.dataframe(building_df)
 
 if df.empty:
-    uploaded_rainfall = st.file_uploader("Upload Rainfall Log CSV", type="csv")
-    if uploaded_rainfall:
-        df = pd.read_csv(uploaded_rainfall, parse_dates=["date"])
+    st.warning("Rainfall data is empty. Showing placeholders.")
+
+if buildings.empty:
+    st.warning("Building list is empty. Limited functionality.")
+
 
 if buildings.empty:
     uploaded_buildings = st.file_uploader("Upload Buildings CSV", type="csv")
