@@ -144,7 +144,7 @@ else:
     st.info("No building comparison data available.")
 
 
-# Download button
+# Download button and Raw Table
 st.subheader("⬇️ Download Building Data")
 if not building_df.empty:
     csv = building_df.to_csv(index=False).encode('utf-8')
@@ -162,12 +162,6 @@ with st.expander("📋 Show Raw Data"):
         st.dataframe(building_df)
     else:
         st.write("No data to display.")
-
-
-# Raw data table
-with st.expander("📋 Show Raw Data"):
-    st.dataframe(building_df)
-
 
 
 
