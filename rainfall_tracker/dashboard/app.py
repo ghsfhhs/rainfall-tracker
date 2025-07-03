@@ -168,10 +168,6 @@ with st.expander("📋 Show Raw Data"):
 with st.expander("📋 Show Raw Data"):
     st.dataframe(building_df)
 
-if df.empty:
-    st.warning("Rainfall data is empty. Showing placeholders.")
 
-if buildings.empty:
-    st.warning("Building list is empty. Limited functionality.")
 
 
