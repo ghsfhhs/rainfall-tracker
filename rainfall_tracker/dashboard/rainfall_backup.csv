@@ -1,0 +1,11 @@
+date,building_name,rainfall_mm,water_harvested_litres
+2024-06-01,Block A,4.1,410
+2024-06-02,Block B,2.7,270
+2024-06-03,Block A,5.9,590
+2024-06-04,Block B,3.6,360
+2024-06-05,Block A,4.0,400
+2024-06-06,Block B,6.1,610
+2024-06-07,Block A,3.3,330
+2024-06-08,Block B,2.9,290
+2024-06-09,Block A,5.2,520
+2024-06-10,Block B,6.4,640
