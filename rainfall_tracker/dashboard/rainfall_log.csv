@@ -1,0 +1,4 @@
+building_name,area_m2,runoff_coefficient
+Library,250,0.85
+AdminBlock,180,0.90
+HostelA,400,0.75
