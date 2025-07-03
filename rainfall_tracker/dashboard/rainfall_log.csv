@@ -1,0 +1,11 @@
+date,building_name,rainfall_mm,water_harvested_litres
+2025-01-01,Block A,5.2,520
+2025-01-02,Block B,3.8,380
+2025-01-03,Block A,7.1,710
+2025-01-04,Block B,4.5,450
+2025-01-05,Block A,2.9,290
+2025-01-06,Block B,6.3,630
+2025-01-07,Block A,3.0,300
+2025-01-08,Block B,4.7,470
+2025-01-09,Block A,5.8,580
+2025-01-10,Block B,6.0,600
