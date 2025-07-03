@@ -175,8 +175,3 @@ if buildings.empty:
     st.warning("Building list is empty. Limited functionality.")
 
 
-if buildings.empty:
-    uploaded_buildings = st.file_uploader("Upload Buildings CSV", type="csv")
-    if uploaded_buildings:
-        buildings = pd.read_csv(uploaded_buildings)
-
