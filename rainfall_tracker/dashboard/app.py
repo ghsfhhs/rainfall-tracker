@@ -12,26 +12,38 @@ import os
 
 @st.cache_data
 def load_data():
-    # Load rainfall log
+    df = pd.DataFrame()
+
+    # Try reading rainfall_log.csv
     if os.path.exists(LOG_FILE):
         try:
             df = pd.read_csv(LOG_FILE, parse_dates=["date"])
+            st.success("Loaded rainfall_log.csv")
         except Exception as e:
-            st.error(f"Error reading {LOG_FILE}: {e}")
-            df = pd.DataFrame(columns=["date", "building_name", "rainfall_mm", "water_harvested_litres"])
-    else:
-        st.warning(f"{LOG_FILE} not found. Starting with empty data.")
+            st.warning(f"Could not read rainfall_log.csv: {e}")
+    
+    # Fallback to backup if needed
+    if df.empty and os.path.exists(BACKUP_FILE):
+        try:
+            df = pd.read_csv(BACKUP_FILE, parse_dates=["date"])
+            st.info("Using rainfall_backup.csv (fallback)")
+        except Exception as e:
+            st.warning(f"Could not read rainfall_backup.csv: {e}")
+
+    # Final fallback to empty DataFrame
+    if df.empty:
+        st.error("Rainfall data is empty. Please upload or check the files.")
         df = pd.DataFrame(columns=["date", "building_name", "rainfall_mm", "water_harvested_litres"])
 
-    # Load building metadata
+    # Load building file
     if os.path.exists(BUILDING_FILE):
         try:
             buildings = pd.read_csv(BUILDING_FILE)
         except Exception as e:
-            st.error(f"Error reading {BUILDING_FILE}: {e}")
+            st.warning(f"Error loading buildings.csv: {e}")
             buildings = pd.DataFrame(columns=["building_name"])
     else:
-        st.warning(f"{BUILDING_FILE} not found. Building list will be empty.")
+        st.warning("buildings.csv not found. Building list will be empty.")
         buildings = pd.DataFrame(columns=["building_name"])
 
     return df, buildings
