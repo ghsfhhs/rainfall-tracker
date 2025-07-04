@@ -5,113 +5,114 @@ import os
 import requests
 from bs4 import BeautifulSoup
 import re
+from streamlit_autorefresh import st_autorefresh
 from pytz import timezone
 import datetime
 
-# ========= CEED building fixed parameters =========
-ROOFTOP_AREA = 500   # in m² (change as needed)
-RUNOFF_COEFF = 0.85 # for metal roof (can adjust)
-
-# ========= Timezone =========
+# ====== Timezone ======
 ist = timezone('Asia/Kolkata')
 now = datetime.datetime.now(ist)
-today_str = now.strftime("%Y-%m-%d")
 st.write("🕒 Current Time:", now.strftime("%Y-%m-%d %H:%M:%S"))
 
-# ========= File =========
-LOG_FILE = 'rainfall_log.csv'
+LOG_FILE = 'dashboard/rainfall_log.csv'
 
-# ========= Fetch live weather =========
+# ====== Fixed parameters ======
+building_name = "CEED"
+roof_area_m2 = 1000   # <-- Change to your actual rooftop area
+runoff_coeff = 0.85   # <-- Typical for metal roofs
+
+# ====== Fetch live weather data ======
 def fetch_live_weather():
     url = "https://iust.ac.in/"
     try:
         r = requests.get(url, timeout=5)
         soup = BeautifulSoup(r.text, "html.parser")
         text = soup.get_text(separator=" ", strip=True)
-
-        pattern = r"Temperature[:\s]*(\d+).*?C.*?Humidity[:\s]*(\d+).*?%.*?Rainfall[:\s]*(\d+).*?mm"
+        pattern = r"Temperature[:\s]*([\d]+).*?C.*?Humidity[:\s]*([\d]+)%.*?Rainfall[:\s]*([\d]+)mm"
         m = re.search(pattern, text, re.DOTALL)
         if m:
             temp, hum, rain = m.groups()
             return int(temp), int(hum), int(rain)
-        else:
-            return None, None, None
     except:
-        return None, None, None
+        pass
+    return None, None, 0
 
-# ========= Load data =========
-if os.path.exists(LOG_FILE):
-    df = pd.read_csv(LOG_FILE)
-else:
-    df = pd.DataFrame(columns=["date", "rainfall_mm", "water_harvested_litres"])
+temp, hum, live_rainfall = fetch_live_weather()
 
-# ========= Get live data =========
-temp, hum, rain_today = fetch_live_weather()
-
-# ========= Calculate harvesting =========
-if rain_today is not None:
-    harvested_today = rain_today * ROOFTOP_AREA * RUNOFF_COEFF
-    harvested_today = round(harvested_today, 2)
-else:
-    harvested_today = "-"
-
-# ========= Display metrics =========
+st.subheader("Live Weather Data")
 col1, col2, col3, col4 = st.columns(4)
-col1.metric("Temperature", f"{temp} °C" if temp is not None else "-")
-col2.metric("Humidity", f"{hum} %" if hum is not None else "-")
-col3.metric("Rainfall Today", f"{rain_today} mm" if rain_today is not None else "-")
-col4.metric("Harvesting Today", f"{harvested_today} L" if harvested_today != "-" else "-")
+col1.metric("Temperature", f"{temp if temp else '-'} °C")
+col2.metric("Humidity", f"{hum if hum else '-'} %")
+col3.metric("Rainfall (Today)", f"{live_rainfall} mm")
+col4.metric("Time", now.strftime("%d %b %Y %I:%M %p"))
 
-# ========= Save today's data if not already saved =========
-if rain_today is not None:
-    # Check if today's data already exists
-    if today_str not in df['date'].values:
-        new_row = pd.DataFrame([[today_str, rain_today, harvested_today]],
-                               columns=["date", "rainfall_mm", "water_harvested_litres"])
-        df = pd.concat([df, new_row], ignore_index=True)
-        df.to_csv(LOG_FILE, index=False)
+# ====== Calculate live harvesting ======
+live_harvest = live_rainfall * roof_area_m2 * runoff_coeff  # in litres
 
-# ========= Show historical analysis =========
-if not df.empty:
-    df['date'] = pd.to_datetime(df['date'])
-    df['year'] = df['date'].dt.year
-    years = sorted(df['year'].unique(), reverse=True)
-    selected_year = st.selectbox("Select Year", years)
+st.subheader("Live Harvesting")
+colA, colB = st.columns(2)
+colA.metric("Rainfall", f"{live_rainfall} mm")
+colB.metric("Today's Harvesting", f"{int(live_harvest)} L")
 
-    year_df = df[df['year'] == selected_year]
-    year_df['month'] = year_df['date'].dt.strftime('%b')
-    year_df['month_num'] = year_df['date'].dt.month
-
-    month_df = year_df.groupby(['month', 'month_num'])[['rainfall_mm', 'water_harvested_litres']].sum().reset_index()
-    month_df = month_df.sort_values('month_num')
-
-    st.write(f"### Monthly Harvesting for CEED ({selected_year})")
-    st.table(month_df[['month', 'rainfall_mm', 'water_harvested_litres']].rename(
-        columns={"rainfall_mm": "Total Rainfall (mm)", "water_harvested_litres": "Total Harvesting (L)"}))
-
-    fig1 = px.bar(month_df, x='month', y='water_harvested_litres',
-                  title=f"Monthly Water Harvesting - CEED ({selected_year})",
-                  color_discrete_sequence=['teal'])
-    st.plotly_chart(fig1, use_container_width=True)
-
-    fig2 = px.line(year_df, x='date', y=['rainfall_mm', 'water_harvested_litres'],
-                   labels={"value": "Amount", "variable": "Type"},
-                   title=f"Daily Rainfall & Harvesting - CEED ({selected_year})")
-    st.plotly_chart(fig2, use_container_width=True)
-
-    st.subheader("Download CEED Data")
-    csv = df.to_csv(index=False).encode('utf-8')
-    st.download_button("Download as CSV", data=csv, file_name='ceed_rainfall_data.csv', mime='text/csv')
-
-    with st.expander("Show Raw Data"):
-        st.dataframe(df)
-
+# ====== Load historical log ======
+if os.path.exists(LOG_FILE):
+    df = pd.read_csv(LOG_FILE, parse_dates=['date'])
 else:
-    st.info("No historical data available yet.")
+    df = pd.DataFrame(columns=['date', 'building_name', 'rainfall_mm', 'water_harvested_litres'])
 
-# ========= Optional: Refresh every 10 minutes =========
-from streamlit_autorefresh import st_autorefresh
-st_autorefresh(interval=10 * 60 * 1000, limit=None, key="refresh")
+# ====== Check today's entry ======
+today_str = now.strftime("%Y-%m-%d")
+if not ((df['date'] == today_str) & (df['building_name'] == building_name)).any():
+    new_entry = pd.DataFrame({
+        'date': [today_str],
+        'building_name': [building_name],
+        'rainfall_mm': [live_rainfall],
+        'water_harvested_litres': [int(live_harvest)]
+    })
+    df = pd.concat([df, new_entry], ignore_index=True)
+    df.to_csv(LOG_FILE, index=False)
+
+# ====== Yearly & monthly summary ======
+df['date'] = pd.to_datetime(df['date'])
+df['year'] = df['date'].dt.year
+df['month'] = df['date'].dt.strftime('%b')
+df['month_num'] = df['date'].dt.month
+
+selected_year = st.selectbox("Select Year", sorted(df['year'].unique(), reverse=True))
+
+year_df = df[(df['year'] == selected_year) & (df['building_name'] == building_name)]
+
+# Ensure numeric
+year_df['rainfall_mm'] = pd.to_numeric(year_df['rainfall_mm'], errors='coerce')
+year_df['water_harvested_litres'] = pd.to_numeric(year_df['water_harvested_litres'], errors='coerce')
+
+# Monthly summary
+month_df = year_df.groupby(['month', 'month_num'])[['rainfall_mm', 'water_harvested_litres']].sum().reset_index()
+month_df = month_df.sort_values('month_num')
+
+# ====== Show table ======
+st.write(f"### Monthly Water Harvesting for {building_name} in {selected_year}")
+month_table = month_df.rename(columns={"water_harvested_litres": "Total Harvesting (L)"})
+st.table(month_table[['month', 'rainfall_mm', 'Total Harvesting (L)']])
+
+# ====== Monthly bar chart ======
+fig1 = px.bar(month_df, x='month', y='water_harvested_litres',
+              title=f"Monthly Water Harvesting - {building_name} ({selected_year})",
+              color_discrete_sequence=["teal"])
+st.plotly_chart(fig1, use_container_width=True)
+
+# ====== Daily line chart ======
+fig2 = px.line(year_df, x='date', y=['rainfall_mm', 'water_harvested_litres'],
+               labels={"value": "Amount", "variable": "Type"},
+               title=f"Daily Rainfall & Harvesting - {building_name} ({selected_year})")
+st.plotly_chart(fig2, use_container_width=True)
+
+# ====== Show raw data ======
+with st.expander("Show Raw Data"):
+    st.dataframe(df[df['building_name'] == building_name])
+
+# ====== Auto-refresh ======
+st_autorefresh(interval=60000, limit=None, key="data_refresh")
 
 
 
