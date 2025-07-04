@@ -64,7 +64,7 @@ st.set_page_config(page_title="Campus Rainwater Harvesting", layout="wide")
 # Auto-refresh every 60 seconds
 st_autorefresh(interval=60000, key="datarefresh")
 
-st.title("\ud83c\udf27\ufe0f Rainwater Harvesting Dashboard - IUST Campus")
+st.title("Rainwater Harvesting Dashboard - IUST Campus")
 
 # ========== LIVE WEATHER DATA ==========
 st.subheader("\ud83d\udd0d Live Weather Data")
