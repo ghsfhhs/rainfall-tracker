@@ -49,7 +49,7 @@ def fetch_live_weather():
     except Exception as e:
         st.warning(f"Error fetching weather: {e}")
 
-    now = datetime.datetime.now().strftime("%d %b %Y %I:%M %p")
+    now = datetime.datetime.now(ist).strftime("%d %b %Y %I:%M %p")
     return {"timestamp": now, "temperature": "-", "humidity": "-", "rainfall": "-"}
 
 
