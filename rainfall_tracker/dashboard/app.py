@@ -36,7 +36,7 @@ def fetch_live_weather():
         m = re.search(pattern, text, re.DOTALL)
         if m:
             temp, hum, rain = m.groups()
-            now = datetime.datetime.now().strftime("%d %b %Y %I:%M %p")
+            now = datetime.datetime.now(ist).strftime("%d %b %Y %I:%M %p")
             return {
                 "timestamp": now,
                 "temperature": f"{temp} °C",
