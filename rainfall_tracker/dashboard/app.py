@@ -12,7 +12,7 @@ BUILDING_FILE = 'buildings.csv'
 # ------------------ Weather Scraper ------------------ #
 def fetch_live_weather():
     try:
-        url = "https://www.weather.iust.ac.in/"  # Update to actual weather URL
+        url = "https://www.iust.ac.in/"  # Update to actual weather URL
         response = requests.get(url, timeout=10)
         soup = BeautifulSoup(response.content, 'html.parser')
 
