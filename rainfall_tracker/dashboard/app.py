@@ -84,8 +84,14 @@ col4.metric("Time", live["timestamp"])
 df, buildings = load_data()
 
 if df.empty:
-    st.warning("Rainfall data is empty. Please upload or check the file.")
+    st.warning("Rainfall data is empty. Showing live harvesting box with dashes.")
+    
+    st.subheader("Live Harvesting")
+    colA, colB = st.columns(2)
+    colA.metric("Rainfall", "-")
+    colB.metric("Today's Harvesting", "-")
     st.stop()
+
 
 building_list = sorted(df["building_name"].unique())
 building = st.selectbox("Select Building", building_list)
