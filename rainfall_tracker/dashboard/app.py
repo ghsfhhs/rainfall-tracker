@@ -20,33 +20,38 @@ BUILDING_FILE = 'buildings.csv'
 
 # =================== Fetch Live Weather ===================
 def fetch_live_weather():
-    url = "https://iust.ac.in/"  # Example page with weather info
+    url = "https://iust.ac.in/"
     try:
         r = requests.get(url, timeout=5)
         soup = BeautifulSoup(r.text, "html.parser")
-        text = soup.get_text()
+        text = soup.get_text(separator=" ", strip=True)
 
+        # Print to Streamlit to see what text is really there
+        st.text(text[:2000])  # Print first 2000 characters for inspection
+
+        # Adjust this once you see real text
         pattern = (
-            r"IUST Weather Station\s*(\d{2}-\d{2}-\d{4}\s*\d{2}:\d{2}\s*(?:AM|PM))"
-            r".*?Temperature\s*(\d+)\s*\u00b0C"
-            r".*?Humidity\s*(\d+)\s*%"
-            r".*?Rainfall\s*(\d+)\s*mm"
+            r"Temperature[:\s]*(\d+)\s*°C.*?Humidity[:\s]*(\d+)\s*%.*?Rainfall[:\s]*(\d+)\s*mm"
         )
-        m = re.search(pattern, text)
+        m = re.search(pattern, text, re.DOTALL)
         if m:
-            ts, temp, hum, rain = m.groups()
-            ts_dt = datetime.datetime.strptime(ts, "%d-%m-%Y %I:%M %p")
+            temp, hum, rain = m.groups()
+            now = datetime.datetime.now().strftime("%d %b %Y %I:%M %p")
             return {
-                "timestamp": ts_dt.strftime("%d %b %Y %I:%M %p"),
+                "timestamp": now,
                 "temperature": f"{temp} °C",
                 "humidity": f"{hum} %",
                 "rainfall": f"{rain} mm"
             }
+        else:
+            st.warning("Weather data pattern not matched.")
+
     except Exception as e:
         st.warning(f"Error fetching weather: {e}")
 
     now = datetime.datetime.now().strftime("%d %b %Y %I:%M %p")
     return {"timestamp": now, "temperature": "-", "humidity": "-", "rainfall": "-"}
+
 
 # =================== Load Data ===================
 @st.cache_data
