@@ -3,7 +3,6 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import os
-from datetime import datetime
 import requests
 from bs4 import BeautifulSoup
 import re
@@ -36,7 +35,7 @@ def fetch_live_weather():
         m = re.search(pattern, text)
         if m:
             ts, temp, hum, rain = m.groups()
-            ts_dt = datetime.strptime(ts, "%d-%m-%Y %I:%M %p")
+            ts_dt = datetime.datetime.strptime(ts, "%d-%m-%Y %I:%M %p")
             return {
                 "timestamp": ts_dt.strftime("%d %b %Y %I:%M %p"),
                 "temperature": f"{temp} °C",
@@ -46,7 +45,7 @@ def fetch_live_weather():
     except Exception as e:
         st.warning(f"Error fetching weather: {e}")
 
-    now = datetime.now().strftime("%d %b %Y %I:%M %p")
+    now = datetime.datetime.now().strftime("%d %b %Y %I:%M %p")
     return {"timestamp": now, "temperature": "-", "humidity": "-", "rainfall": "-"}
 
 # =================== Load Data ===================
