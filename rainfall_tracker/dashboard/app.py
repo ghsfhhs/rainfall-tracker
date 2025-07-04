@@ -25,7 +25,7 @@ def fetch_live_weather():
         soup = BeautifulSoup(r.text, "html.parser")
         text = soup.get_text(separator=" ", strip=True)
 
-        # Debug: print text to see structure
+        # Debug: print text to see structure if needed
         # st.text(text[:2000])
 
         pattern = r"Temperature[:\s]*(\d+)\s*°C.*?Humidity[:\s]*(\d+)\s*%.*?Rainfall[:\s]*(\d+)\s*mm"
@@ -92,7 +92,7 @@ if df.empty:
     colB.metric("Today's Harvesting", "-")
     st.stop()
 
-
+# ========== Select Building ==========
 building_list = sorted(df["building_name"].unique())
 building = st.selectbox("Select Building", building_list)
 building_df = df[df["building_name"] == building]
@@ -115,27 +115,38 @@ colB.metric("Total Harvesting", harvesting_value)
 
 # ========== Year-wise Harvesting ==========
 st.subheader("Year-wise Harvesting")
+
+# Add year column
 building_df["year"] = building_df["date"].dt.year
-year_list = sorted(building_df["year"].unique(), reverse=True)
-selected_year = st.selectbox("Select Year", year_list)
 
-year_df = building_df[building_df["year"] == selected_year]
-year_df["month"] = year_df["date"].dt.strftime("%b")
-monthly = year_df.groupby("month")[["rainfall_mm", "water_harvested_litres"]].sum().reset_index()
+# Group to get total by year
+year_df = building_df.groupby("year")["water_harvested_litres"].sum().reset_index()
 
-# Monthly table
-monthly_table = monthly[["month", "water_harvested_litres"]].rename(columns={"water_harvested_litres": "Total Harvesting (L)"})
-st.table(monthly_table)
+# Create labels with totals
+year_labels = [f"{row['year']} (Total: {row['water_harvested_litres']:.0f} L)" for _, row in year_df.iterrows()]
+selected_year_label = st.selectbox("Select Year", year_labels)
+
+selected_year = int(selected_year_label.split()[0])
+year_data = building_df[building_df["year"] == selected_year].copy()
+
+# Group by month for selected year
+year_data["month"] = year_data["date"].dt.strftime("%b")
+month_df = year_data.groupby("month")["water_harvested_litres"].sum().reset_index()
+month_df = month_df.sort_values(by="month", key=lambda x: pd.to_datetime(x, format='%b'))
+
+# Show month-wise table
+st.write(f"### Monthly Harvesting for {selected_year}")
+month_table = month_df.rename(columns={"water_harvested_litres": "Total Harvesting (L)"})
+st.table(month_table)
 
 # Monthly bar chart
-fig1 = px.bar(monthly, x="month", y="water_harvested_litres",
+fig1 = px.bar(month_df, x="month", y="Total Harvesting (L)",
               title="Monthly Water Harvested",
-              labels={"water_harvested_litres": "Litres"},
               color_discrete_sequence=["teal"])
 st.plotly_chart(fig1, use_container_width=True)
 
 # Daily line chart
-fig2 = px.line(year_df, x="date", y=["rainfall_mm", "water_harvested_litres"],
+fig2 = px.line(year_data, x="date", y=["rainfall_mm", "water_harvested_litres"],
                labels={"value": "Amount", "variable": "Type"},
                title="Daily Rainfall & Harvesting")
 st.plotly_chart(fig2, use_container_width=True)
