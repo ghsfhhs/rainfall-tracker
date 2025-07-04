@@ -50,9 +50,6 @@ def load_log():
     else:
         return pd.DataFrame(columns=['date', 'building_name', 'rainfall_mm', 'water_harvested_litres'])
 
-df = load_log()
-st.write("✅ Years Found in Data:", sorted(df['date'].dt.year.unique()))
-
 
 # ========== Save Log ==========
 def save_log(df):
