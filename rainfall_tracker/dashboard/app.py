@@ -67,7 +67,7 @@ st_autorefresh(interval=60000, key="datarefresh")
 st.title("Rainwater Harvesting Dashboard - IUST Campus")
 
 # ========== LIVE WEATHER DATA ==========
-st.subheader("\ud83d\udd0d Live Weather Data")
+st.subheader("Live Weather Data")
 live = fetch_live_weather()
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("\ud83c\udf21\ufe0f Temperature", live["temperature"])
@@ -87,7 +87,7 @@ building = st.selectbox("Select Building", building_list)
 building_df = df[df["building_name"] == building]
 
 # ========== STATS ==========
-st.subheader("\ud83d\udcca Live Harvesting Summary")
+st.subheader("Live Harvesting Summary")
 total_water = building_df["water_harvested_litres"].sum()
 avg_rainfall = building_df["rainfall_mm"].mean()
 
@@ -96,7 +96,7 @@ col5.metric("\ud83d\udca7 Total Water Harvested (L)", f"{total_water:,.0f}")
 col6.metric("\u2602\ufe0f Avg. Daily Rainfall (mm)", f"{avg_rainfall:.2f}")
 
 # ========== YEAR-WISE VIEW ==========
-st.subheader("\ud83d\udcc6 Year-wise Harvesting")
+st.subheader("Year-wise Harvesting")
 building_df["year"] = building_df["date"].dt.year
 year_list = sorted(building_df["year"].unique(), reverse=True)
 selected_year = st.selectbox("Select Year", year_list)
@@ -122,7 +122,7 @@ fig2 = px.line(year_df, x="date", y=["rainfall_mm", "water_harvested_litres"],
 st.plotly_chart(fig2, use_container_width=True)
 
 # ========== COMPARE BUILDINGS ==========
-st.subheader("\ud83c\udfe2 Compare Buildings")
+st.subheader("Compare Buildings")
 compare_df = df.groupby("building_name")[["rainfall_mm", "water_harvested_litres"]].sum().reset_index()
 fig3 = px.bar(compare_df, x="building_name", y="water_harvested_litres",
               title="Total Water Harvested by Building",
@@ -131,11 +131,11 @@ fig3 = px.bar(compare_df, x="building_name", y="water_harvested_litres",
 st.plotly_chart(fig3, use_container_width=True)
 
 # ========== DOWNLOAD ==========
-st.subheader("\u2b07\ufe0f Download Building Data")
+st.subheader("Download Building Data")
 csv = building_df.to_csv(index=False).encode('utf-8')
 st.download_button("Download as CSV", data=csv, file_name=f"{building}_rainfall_data.csv", mime='text/csv')
 
-with st.expander("\ud83d\udccb Show Raw Data"):
+with st.expander("Show Raw Data"):
     st.dataframe(building_df)
 
 
