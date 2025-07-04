@@ -93,8 +93,11 @@ if today_str not in df['date'].dt.strftime("%Y-%m-%d").values:
     df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
     save_log(df)
 
-# ========== Data Visualization ==========
-if not df.empty:
+# ========== Tabs ==========
+tab1, tab2 = st.tabs(["📈 Live Dashboard", "📅 Year Wise Harvesting"])
+
+# ========== TAB 1: LIVE DASHBOARD ==========
+with tab1:
     df['year'] = df['date'].dt.year
     df['month'] = df['date'].dt.strftime('%b')
     df['month_num'] = df['date'].dt.month
@@ -137,8 +140,41 @@ if not df.empty:
             st.dataframe(year_df)
     else:
         st.warning("No data found for this building.")
-else:
-    st.info("No historical rainfall data yet.")
+
+# ========== TAB 2: YEAR WISE HARVESTING ==========
+with tab2:
+    st.header("📅 Year Wise Water Harvesting Summary")
+
+    year_summary = (
+        df[df['building_name'] == BUILDING_NAME]
+        .groupby('year')[['water_harvested_litres']]
+        .sum()
+        .reset_index()
+        .sort_values('year', ascending=False)
+    )
+
+    st.subheader("💧 Total Water Harvested by Year")
+    st.dataframe(year_summary.rename(columns={"year": "Year", "water_harvested_litres": "Total (Litres)"}))
+
+    selected_year_tab2 = st.selectbox("🔽 Select Year to View Monthly Details", year_summary['year'])
+
+    monthly_breakdown = (
+        df[(df['year'] == selected_year_tab2) & (df['building_name'] == BUILDING_NAME)]
+        .groupby(['month', 'month_num'])[['rainfall_mm', 'water_harvested_litres']]
+        .sum()
+        .reset_index()
+        .sort_values('month_num')
+    )
+
+    st.subheader(f"📆 Monthly Harvesting for {selected_year_tab2}")
+    st.dataframe(
+        monthly_breakdown[['month', 'rainfall_mm', 'water_harvested_litres']]
+        .rename(columns={
+            "month": "Month",
+            "rainfall_mm": "Rainfall (mm)",
+            "water_harvested_litres": "Harvested (Litres)"
+        })
+    )
 
 
 
