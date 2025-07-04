@@ -14,8 +14,9 @@ ist = timezone('Asia/Kolkata')
 now = datetime.datetime.now(ist)
 st.write("🕒 Current Time:", now.strftime("%Y-%m-%d %H:%M:%S"))
 
-LOG_FILE = 'rainfall_log.csv'
-BUILDING_FILE = 'buildings.csv'
+LOG_FILE = 'dashboard/rainfall_log.csv'
+BUILDING_FILE = 'dashboard/buildings.csv'
+
 
 # ========== Fetch Live Weather ==========
 def fetch_live_weather():
