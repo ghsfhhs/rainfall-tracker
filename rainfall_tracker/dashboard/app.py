@@ -25,9 +25,6 @@ def fetch_live_weather():
         soup = BeautifulSoup(r.text, "html.parser")
         text = soup.get_text(separator=" ", strip=True)
 
-        # Debug: print text to see structure if needed
-        # st.text(text[:2000])
-
         pattern = r"Temperature[:\s]*(\d+)\s*°C.*?Humidity[:\s]*(\d+)\s*%.*?Rainfall[:\s]*(\d+)\s*mm"
         m = re.search(pattern, text, re.DOTALL)
         if m:
@@ -85,7 +82,6 @@ df, buildings = load_data()
 
 if df.empty:
     st.warning("Rainfall data is empty. Showing live harvesting box with dashes.")
-    
     st.subheader("Live Harvesting")
     colA, colB = st.columns(2)
     colA.metric("Rainfall", "-")
@@ -95,23 +91,23 @@ if df.empty:
 # ========== Select Building ==========
 building_list = sorted(df["building_name"].unique())
 building = st.selectbox("Select Building", building_list)
-building_df = df[df["building_name"] == building]
+building_df = df[df["building_name"] == building].copy()
 
 # ========== Live Harvesting Section ==========
 st.subheader("Live Harvesting")
 
-total_water = building_df["water_harvested_litres"].sum()
+# Calculate today's harvesting
+today = datetime.datetime.now(ist).date()
+today_df = building_df[building_df["date"].dt.date == today]
+today_rainfall = today_df["rainfall_mm"].sum()
+today_harvest = today_df["water_harvested_litres"].sum()
 
-if live["rainfall"] != "-" and live["rainfall"] != "0 mm":
-    rainfall_value = live["rainfall"]
-    harvesting_value = f"{total_water:,.0f} L"
-else:
-    rainfall_value = "-"
-    harvesting_value = "-"
+rainfall_value = f"{today_rainfall:.2f} mm" if today_rainfall > 0 else "-"
+harvesting_value = f"{today_harvest:,.0f} L" if today_harvest > 0 else "-"
 
 colA, colB = st.columns(2)
 colA.metric("Rainfall", rainfall_value)
-colB.metric("Total Harvesting", harvesting_value)
+colB.metric("Today's Harvesting", harvesting_value)
 
 # ========== Year-wise Harvesting ==========
 st.subheader("Year-wise Harvesting")
@@ -123,7 +119,7 @@ building_df["year"] = building_df["date"].dt.year
 year_df = building_df.groupby("year")["water_harvested_litres"].sum().reset_index()
 
 # Create labels with totals
-year_labels = [f"{row['year']} (Total: {row['water_harvested_litres']:.0f} L)" for _, row in year_df.iterrows()]
+year_labels = [f"{int(row['year'])} (Total: {row['water_harvested_litres']:.0f} L)" for _, row in year_df.iterrows()]
 selected_year_label = st.selectbox("Select Year", year_labels)
 
 selected_year = int(selected_year_label.split()[0])
@@ -132,7 +128,10 @@ year_data = building_df[building_df["year"] == selected_year].copy()
 # Group by month for selected year
 year_data["month"] = year_data["date"].dt.strftime("%b")
 month_df = year_data.groupby("month")["water_harvested_litres"].sum().reset_index()
-month_df = month_df.sort_values(by="month", key=lambda x: pd.to_datetime(x, format='%b'))
+
+# Sort months correctly
+month_df["month_num"] = pd.to_datetime(month_df["month"], format='%b').dt.month
+month_df = month_df.sort_values("month_num").drop(columns="month_num")
 
 # Show month-wise table
 st.write(f"### Monthly Harvesting for {selected_year}")
@@ -141,14 +140,14 @@ st.table(month_table)
 
 # Monthly bar chart
 fig1 = px.bar(month_df, x="month", y="Total Harvesting (L)",
-              title="Monthly Water Harvested",
+              title=f"Monthly Water Harvested in {selected_year}",
               color_discrete_sequence=["teal"])
 st.plotly_chart(fig1, use_container_width=True)
 
 # Daily line chart
 fig2 = px.line(year_data, x="date", y=["rainfall_mm", "water_harvested_litres"],
                labels={"value": "Amount", "variable": "Type"},
-               title="Daily Rainfall & Harvesting")
+               title=f"Daily Rainfall & Harvesting in {selected_year}")
 st.plotly_chart(fig2, use_container_width=True)
 
 # ========== Compare Buildings ==========
