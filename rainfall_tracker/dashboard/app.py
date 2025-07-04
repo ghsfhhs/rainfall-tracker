@@ -26,14 +26,12 @@ def fetch_live_weather():
         soup = BeautifulSoup(r.text, "html.parser")
         text = soup.get_text(separator=" ", strip=True)
 
-        # Print to Streamlit to see what text is really there
-        st.text(text[:2000])  # Print first 2000 characters for inspection
+        # Debug: Uncomment below line if you want to inspect all text
+        # st.text(text[:2000])
 
-        # Adjust this once you see real text
-        pattern = (
-            r"Temperature[:\s]*(\d+)\s*°C.*?Humidity[:\s]*(\d+)\s*%.*?Rainfall[:\s]*(\d+)\s*mm"
-        )
-        m = re.search(pattern, text, re.DOTALL)
+        # New, simpler regex pattern
+        pattern = r"Temperature\s*(\d+)\s*°C\s*Humidity\s*(\d+)\s*%\s*Rainfall\s*(\d+)\s*mm"
+        m = re.search(pattern, text)
         if m:
             temp, hum, rain = m.groups()
             now = datetime.datetime.now().strftime("%d %b %Y %I:%M %p")
@@ -44,13 +42,14 @@ def fetch_live_weather():
                 "rainfall": f"{rain} mm"
             }
         else:
-            st.warning("Weather data pattern not matched.")
+            st.warning("Weather data not matched. Check website structure.")
 
     except Exception as e:
         st.warning(f"Error fetching weather: {e}")
 
     now = datetime.datetime.now().strftime("%d %b %Y %I:%M %p")
     return {"timestamp": now, "temperature": "-", "humidity": "-", "rainfall": "-"}
+
 
 
 # =================== Load Data ===================
