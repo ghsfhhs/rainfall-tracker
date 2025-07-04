@@ -70,10 +70,10 @@ st.title("Rainwater Harvesting Dashboard - IUST Campus")
 st.subheader("Live Weather Data")
 live = fetch_live_weather()
 col1, col2, col3, col4 = st.columns(4)
-col1.metric("\ud83c\udf21\ufe0f Temperature", live["temperature"])
-col2.metric("\ud83d\udca7 Humidity", live["humidity"])
-col3.metric("\u2602\ufe0f Rainfall (Today)", live["rainfall"])
-col4.metric("\ud83d\udcc5 Time", live["timestamp"])
+col1.metric("Temperature", live["temperature"])
+col2.metric("Humidity", live["humidity"])
+col3.metric("Rainfall (Today)", live["rainfall"])
+col4.metric("Time", live["timestamp"])
 
 # ========== MAIN DASHBOARD ==========
 df, buildings = load_data()
@@ -92,8 +92,8 @@ total_water = building_df["water_harvested_litres"].sum()
 avg_rainfall = building_df["rainfall_mm"].mean()
 
 col5, col6 = st.columns(2)
-col5.metric("\ud83d\udca7 Total Water Harvested (L)", f"{total_water:,.0f}")
-col6.metric("\u2602\ufe0f Avg. Daily Rainfall (mm)", f"{avg_rainfall:.2f}")
+col5.metric("Total Water Harvested (L)", f"{total_water:,.0f}")
+col6.metric("Avg. Daily Rainfall (mm)", f"{avg_rainfall:.2f}")
 
 # ========== YEAR-WISE VIEW ==========
 st.subheader("Year-wise Harvesting")
