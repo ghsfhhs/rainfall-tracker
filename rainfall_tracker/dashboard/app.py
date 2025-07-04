@@ -26,10 +26,9 @@ def fetch_live_weather():
         soup = BeautifulSoup(r.text, "html.parser")
         text = soup.get_text(separator=" ", strip=True)
 
-        # Debug: Uncomment below line if you want to inspect all text
-        # st.text(text[:2000])
+        # Add this line to show text in Streamlit
+        st.text(text[:3000])
 
-        # New, simpler regex pattern
         pattern = r"Temperature\s*(\d+)\s*°C\s*Humidity\s*(\d+)\s*%\s*Rainfall\s*(\d+)\s*mm"
         m = re.search(pattern, text)
         if m:
