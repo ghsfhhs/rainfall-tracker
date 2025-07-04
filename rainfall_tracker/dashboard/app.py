@@ -8,6 +8,13 @@ import requests
 from bs4 import BeautifulSoup
 import re
 from streamlit_autorefresh import st_autorefresh
+from pytz import timezone
+import datetime
+
+ist = timezone('Asia/Kolkata')
+now = datetime.datetime.now(ist)
+st.write("🕒 Current Time:", now.strftime("%Y-%m-%d %H:%M:%S"))
+
 
 LOG_FILE = 'rainfall_log.csv'
 BUILDING_FILE = 'buildings.csv'
