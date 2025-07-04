@@ -41,11 +41,15 @@ def calculate_harvest(rain_mm):
     return rain_mm * ROOFTOP_AREA * RUNOFF_COEFFICIENT
 
 # ========== Load Log ==========
+# ========== Load Log ==========
 def load_log():
     if os.path.exists(LOG_FILE):
-        return pd.read_csv(LOG_FILE)
+        df = pd.read_csv(LOG_FILE, parse_dates=['date'], dayfirst=False)
+        df['date'] = pd.to_datetime(df['date'], errors='coerce')
+        return df.dropna(subset=['date'])
     else:
         return pd.DataFrame(columns=['date', 'building_name', 'rainfall_mm', 'water_harvested_litres'])
+
 
 # ========== Save Log ==========
 def save_log(df):
