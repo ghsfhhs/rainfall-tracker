@@ -5,6 +5,7 @@ import os
 from datetime import datetime
 
 LOG_FILE = 'rainfall_log.csv'
+BACKUP_FILE = 'rainfall_backup.csv'
 BUILDING_FILE = 'buildings.csv'
 
 import os
