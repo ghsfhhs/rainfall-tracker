@@ -43,7 +43,7 @@ def calculate_harvest(rain_mm):
 # ========== Load Log ==========
 def load_log():
     if os.path.exists(LOG_FILE):
-        return pd.read_csv(LOG_FILE, parse_dates=['date'])
+        return pd.read_csv(LOG_FILE)
     else:
         return pd.DataFrame(columns=['date', 'building_name', 'rainfall_mm', 'water_harvested_litres'])
 
@@ -77,9 +77,13 @@ colB.metric("💧 Harvested", f"{int(today_harvest)} L")
 
 # ========== Update Log ==========
 df = load_log()
-today_str = now.strftime("%Y-%m-%d")
 
-if today_str not in df['date'].astype(str).values:
+# Fix any non-parsed or invalid dates
+df['date'] = pd.to_datetime(df['date'], errors='coerce')
+df = df.dropna(subset=['date'])
+
+today_str = now.strftime("%Y-%m-%d")
+if today_str not in df['date'].dt.strftime("%Y-%m-%d").values:
     new_row = {
         'date': today_str,
         'building_name': BUILDING_NAME,
@@ -91,39 +95,51 @@ if today_str not in df['date'].astype(str).values:
 
 # ========== Data Visualization ==========
 if not df.empty:
-    df['date'] = pd.to_datetime(df['date'])
     df['year'] = df['date'].dt.year
     df['month'] = df['date'].dt.strftime('%b')
     df['month_num'] = df['date'].dt.month
 
     df_building = df[df['building_name'] == BUILDING_NAME]
-    selected_year = st.selectbox("Select Year", sorted(df_building['year'].unique(), reverse=True))
-    year_df = df_building[df_building['year'] == selected_year]
 
-    year_df['rainfall_mm'] = pd.to_numeric(year_df['rainfall_mm'], errors='coerce')
-    year_df['water_harvested_litres'] = pd.to_numeric(year_df['water_harvested_litres'], errors='coerce')
+    if not df_building.empty:
+        selected_year = st.selectbox("Select Year", sorted(df_building['year'].unique(), reverse=True))
+        year_df = df_building[df_building['year'] == selected_year]
 
-    month_df = (
-        year_df.groupby(['month', 'month_num'])[['rainfall_mm', 'water_harvested_litres']]
-        .sum()
-        .reset_index()
-        .sort_values('month_num')
-    )
+        # Ensure numeric types
+        year_df['rainfall_mm'] = pd.to_numeric(year_df['rainfall_mm'], errors='coerce')
+        year_df['water_harvested_litres'] = pd.to_numeric(year_df['water_harvested_litres'], errors='coerce')
 
-    st.write(f"### 📊 Monthly Water Harvesting - {BUILDING_NAME} ({selected_year})")
-    fig1 = px.bar(month_df, x='month', y='water_harvested_litres',
-                  labels={'water_harvested_litres': 'Litres'}, color_discrete_sequence=["teal"])
-    st.plotly_chart(fig1, use_container_width=True)
+        # Monthly aggregation
+        month_df = (
+            year_df.groupby(['month', 'month_num'])[['rainfall_mm', 'water_harvested_litres']]
+            .sum()
+            .reset_index()
+            .sort_values('month_num')
+        )
 
-    fig2 = px.line(year_df, x='date', y=['rainfall_mm', 'water_harvested_litres'],
-                   labels={"value": "Amount", "variable": "Metric"},
-                   title=f"📈 Daily Rainfall & Harvesting - {BUILDING_NAME} ({selected_year})")
-    st.plotly_chart(fig2, use_container_width=True)
+        # === Monthly Summary Chart ===
+        st.write(f"### 📊 Monthly Water Harvesting - {BUILDING_NAME} ({selected_year})")
+        fig1 = px.bar(month_df, x='month', y='water_harvested_litres',
+                      labels={'water_harvested_litres': 'Litres'},
+                      color_discrete_sequence=["teal"])
+        st.plotly_chart(fig1, use_container_width=True)
 
-    with st.expander("📋 Show Raw Data"):
-        st.dataframe(year_df)
+        # === Daily Line Chart ===
+        fig2 = px.line(
+            year_df, x='date', y=['rainfall_mm', 'water_harvested_litres'],
+            labels={"value": "Amount", "variable": "Metric"},
+            title=f"📈 Daily Rainfall & Harvesting - {BUILDING_NAME} ({selected_year})"
+        )
+        st.plotly_chart(fig2, use_container_width=True)
+
+        # === Raw Data ===
+        with st.expander("📋 Show Raw Data"):
+            st.dataframe(year_df)
+    else:
+        st.warning("No data found for this building.")
 else:
-    st.info("No historical data yet.")
+    st.info("No historical rainfall data yet.")
+
 
 
 
