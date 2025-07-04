@@ -1,135 +1,142 @@
+# app.py
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 import os
-import requests
 from datetime import datetime
+import requests
 from bs4 import BeautifulSoup
+import re
+from streamlit_autorefresh import st_autorefresh
 
 LOG_FILE = 'rainfall_log.csv'
 BUILDING_FILE = 'buildings.csv'
 
-# ------------------ Weather Scraper ------------------ #
+# =================== Fetch Live Weather ===================
 def fetch_live_weather():
+    url = "https://iust.ac.in/"  # Example page with weather info
     try:
-        url = "https://www.iust.ac.in/"  # Update to actual weather URL
-        response = requests.get(url, timeout=10)
-        soup = BeautifulSoup(response.content, 'html.parser')
+        r = requests.get(url, timeout=5)
+        soup = BeautifulSoup(r.text, "html.parser")
+        text = soup.get_text()
 
-        temp = soup.find(id="lbltemp").text.strip()
-        humidity = soup.find(id="lblhumidity").text.strip()
-        rainfall = soup.find(id="lblrainfall").text.strip()
-        date_time = datetime.now().strftime("%d %b %Y %I:%M %p")
-
-        return temp, humidity, rainfall, date_time
+        pattern = (
+            r"IUST Weather Station\s*(\d{2}-\d{2}-\d{4}\s*\d{2}:\d{2}\s*(?:AM|PM))"
+            r".*?Temperature\s*(\d+)\s*\u00b0C"
+            r".*?Humidity\s*(\d+)\s*%"
+            r".*?Rainfall\s*(\d+)\s*mm"
+        )
+        m = re.search(pattern, text)
+        if m:
+            ts, temp, hum, rain = m.groups()
+            ts_dt = datetime.strptime(ts, "%d-%m-%Y %I:%M %p")
+            return {
+                "timestamp": ts_dt.strftime("%d %b %Y %I:%M %p"),
+                "temperature": f"{temp} °C",
+                "humidity": f"{hum} %",
+                "rainfall": f"{rain} mm"
+            }
     except Exception as e:
-        return "-", "-", "-", datetime.now().strftime("%d %b %Y %I:%M %p")
+        st.warning(f"Error fetching weather: {e}")
 
-# ------------------ Load Data ------------------ #
+    now = datetime.now().strftime("%d %b %Y %I:%M %p")
+    return {"timestamp": now, "temperature": "-", "humidity": "-", "rainfall": "-"}
+
+# =================== Load Data ===================
 @st.cache_data
 def load_data():
     if os.path.exists(LOG_FILE):
-        df = pd.read_csv(LOG_FILE, parse_dates=['date'])
+        df = pd.read_csv(LOG_FILE, parse_dates=["date"])
     else:
-        st.warning("rainfall_log.csv not found. Starting with empty data.")
-        df = pd.DataFrame(columns=['date', 'building_name', 'rainfall_mm', 'water_harvested_litres'])
+        st.info("rainfall_log.csv not found. Starting with empty data.")
+        df = pd.DataFrame(columns=["date", "building_name", "rainfall_mm", "water_harvested_litres"])
 
     if os.path.exists(BUILDING_FILE):
         buildings = pd.read_csv(BUILDING_FILE)
     else:
-        st.warning("buildings.csv not found. Building list will be empty.")
-        buildings = pd.DataFrame(columns=['building_name'])
+        st.info("buildings.csv not found. Building list will be empty.")
+        buildings = pd.DataFrame(columns=["building_name"])
 
     return df, buildings
 
-# ------------------ Main ------------------ #
+# =================== UI Layout ===================
 st.set_page_config(page_title="Campus Rainwater Harvesting", layout="wide")
-st.title("🌧️ Rainwater Harvesting Dashboard - IUST Campus")
+# Auto-refresh every 60 seconds
+st_autorefresh(interval=60000, key="datarefresh")
 
-# Load data
+st.title("\ud83c\udf27\ufe0f Rainwater Harvesting Dashboard - IUST Campus")
+
+# ========== LIVE WEATHER DATA ==========
+st.subheader("\ud83d\udd0d Live Weather Data")
+live = fetch_live_weather()
+col1, col2, col3, col4 = st.columns(4)
+col1.metric("\ud83c\udf21\ufe0f Temperature", live["temperature"])
+col2.metric("\ud83d\udca7 Humidity", live["humidity"])
+col3.metric("\u2602\ufe0f Rainfall (Today)", live["rainfall"])
+col4.metric("\ud83d\udcc5 Time", live["timestamp"])
+
+# ========== MAIN DASHBOARD ==========
 df, buildings = load_data()
 
-# Query param to detect building
-query_building = st.query_params.get("building")
-building_list = sorted(df["building_name"].unique())
-
-if query_building in building_list:
-    selected = query_building
-elif building_list:
-    selected = st.selectbox("Select Building", building_list)
-else:
+if df.empty:
     st.warning("Rainfall data is empty. Please upload or check the file.")
     st.stop()
 
-# ------------------ Live Weather ------------------ #
-st.subheader("🌦️ Live Weather Conditions")
-temp, humidity, rain_today, now = fetch_live_weather()
-col1, col2, col3, col4 = st.columns(4)
-col1.metric("Temperature", temp)
-col2.metric("Humidity", humidity)
-col3.metric("Rainfall (Today)", rain_today)
-col4.metric("Date & Time", now)
+building_list = sorted(df["building_name"].unique())
+building = st.selectbox("Select Building", building_list)
+building_df = df[df["building_name"] == building]
 
-# ------------------ Filter & Display ------------------ #
-building_df = df[df["building_name"] == selected]
+# ========== STATS ==========
+st.subheader("\ud83d\udcca Live Harvesting Summary")
+total_water = building_df["water_harvested_litres"].sum()
+avg_rainfall = building_df["rainfall_mm"].mean()
 
-if building_df.empty:
-    st.error("No data available for this building.")
-else:
-    today = pd.Timestamp.today().normalize()
-    today_data = building_df[building_df["date"] == today]
+col5, col6 = st.columns(2)
+col5.metric("\ud83d\udca7 Total Water Harvested (L)", f"{total_water:,.0f}")
+col6.metric("\u2602\ufe0f Avg. Daily Rainfall (mm)", f"{avg_rainfall:.2f}")
 
-    rain_today_val = today_data["rainfall_mm"].sum() if not today_data.empty else 0
-    water_today_val = today_data["water_harvested_litres"].sum() if not today_data.empty else 0
+# ========== YEAR-WISE VIEW ==========
+st.subheader("\ud83d\udcc6 Year-wise Harvesting")
+building_df["year"] = building_df["date"].dt.year
+year_list = sorted(building_df["year"].unique(), reverse=True)
+selected_year = st.selectbox("Select Year", year_list)
+year_df = building_df[building_df["year"] == selected_year]
 
-    st.subheader("📍 Live Harvesting Today")
-    col5, col6 = st.columns(2)
-    col5.metric("Rainfall (mm)", f"{rain_today_val:.2f}" if rain_today_val else "–")
-    col6.metric("Water Harvested (Litres)", f"{water_today_val:,.0f}" if water_today_val else "–")
+if year_df.empty:
+    st.warning("No data found for selected year. Showing previous year.")
+    if len(year_list) > 1:
+        year_df = building_df[building_df["year"] == year_list[1]]
 
-    # ------------------ Year-Wise Harvesting ------------------ #
-    building_df["year"] = building_df["date"].dt.year
-    year_list = sorted(building_df["year"].unique())[::-1]  # Latest first
+year_df["month"] = year_df["date"].dt.strftime("%b")
+monthly = year_df.groupby("month")[["rainfall_mm", "water_harvested_litres"]].sum().reset_index()
 
-    st.subheader("📆 Year-wise Harvesting")
-    selected_year = st.selectbox("Select Year", year_list)
+fig1 = px.bar(monthly, x="month", y="water_harvested_litres",
+              title="Monthly Water Harvested",
+              labels={"water_harvested_litres": "Litres"},
+              color_discrete_sequence=["teal"])
+st.plotly_chart(fig1, use_container_width=True)
 
-    year_df = building_df[building_df["year"] == selected_year]
-    if year_df.empty:
-        st.warning("No data found for selected year. Showing previous year.")
-        if len(year_list) > 1:
-            year_df = building_df[building_df["year"] == year_list[1]]
-        else:
-            year_df = building_df
+fig2 = px.line(year_df, x="date", y=["rainfall_mm", "water_harvested_litres"],
+               labels={"value": "Amount", "variable": "Type"},
+               title="Daily Rainfall & Harvesting")
+st.plotly_chart(fig2, use_container_width=True)
 
-    year_df["month"] = year_df["date"].dt.strftime("%b")
-    monthly = year_df.groupby("month")[["rainfall_mm", "water_harvested_litres"]].sum().reset_index()
+# ========== COMPARE BUILDINGS ==========
+st.subheader("\ud83c\udfe2 Compare Buildings")
+compare_df = df.groupby("building_name")[["rainfall_mm", "water_harvested_litres"]].sum().reset_index()
+fig3 = px.bar(compare_df, x="building_name", y="water_harvested_litres",
+              title="Total Water Harvested by Building",
+              labels={"water_harvested_litres": "Litres"},
+              color_discrete_sequence=["indianred"])
+st.plotly_chart(fig3, use_container_width=True)
 
-    fig1 = px.bar(monthly, x="month", y="water_harvested_litres", title="Monthly Water Harvested",
-                  labels={"water_harvested_litres": "Litres"}, color_discrete_sequence=["teal"])
-    st.plotly_chart(fig1, use_container_width=True)
+# ========== DOWNLOAD ==========
+st.subheader("\u2b07\ufe0f Download Building Data")
+csv = building_df.to_csv(index=False).encode('utf-8')
+st.download_button("Download as CSV", data=csv, file_name=f"{building}_rainfall_data.csv", mime='text/csv')
 
-    st.subheader("📈 Daily Trends")
-    fig2 = px.line(year_df, x="date", y=["rainfall_mm", "water_harvested_litres"],
-                   labels={"value": "Amount", "variable": "Type"}, title="Daily Rainfall & Harvesting")
-    st.plotly_chart(fig2, use_container_width=True)
-
-    # ------------------ Building Comparison ------------------ #
-    st.subheader("🏢 Compare Buildings")
-    compare_df = df.groupby("building_name")[["rainfall_mm", "water_harvested_litres"]].sum().reset_index()
-    fig3 = px.bar(compare_df, x="building_name", y="water_harvested_litres",
-                  title="Total Water Harvested by Building",
-                  labels={"water_harvested_litres": "Litres"}, color_discrete_sequence=["indianred"])
-    st.plotly_chart(fig3, use_container_width=True)
-
-    # ------------------ Download Button ------------------ #
-    st.subheader("⬇️ Download Building Data")
-    csv = building_df.to_csv(index=False).encode('utf-8')
-    st.download_button("Download as CSV", data=csv,
-                       file_name=f"{selected}_rainfall_data.csv", mime='text/csv')
-
-    with st.expander("📋 Show Raw Data"):
-        st.dataframe(building_df)
+with st.expander("\ud83d\udccb Show Raw Data"):
+    st.dataframe(building_df)
 
 
 
