@@ -38,7 +38,6 @@ def fetch_live_weather():
             }
         else:
             st.warning("Weather data pattern not matched. Check website structure.")
-
     except Exception as e:
         st.warning(f"Error fetching weather: {e}")
 
@@ -91,56 +90,57 @@ if df.empty:
 # ========== Select Building ==========
 building_list = sorted(df["building_name"].unique())
 building = st.selectbox("Select Building", building_list)
-building_df = df[df["building_name"] == building].copy()
+building_df = df[df["building_name"] == building]
 
-# ========== Live Harvesting Section ==========
+# ========== Live Harvesting ==========
 st.subheader("Live Harvesting")
 
-# Calculate today's harvesting
-today = datetime.datetime.now(ist).date()
-today_df = building_df[building_df["date"].dt.date == today]
-today_rainfall = today_df["rainfall_mm"].sum()
-today_harvest = today_df["water_harvested_litres"].sum()
+total_water = building_df["water_harvested_litres"].sum()
 
-rainfall_value = f"{today_rainfall:.2f} mm" if today_rainfall > 0 else "-"
-harvesting_value = f"{today_harvest:,.0f} L" if today_harvest > 0 else "-"
+if live["rainfall"] != "-" and live["rainfall"] != "0 mm":
+    rainfall_value = live["rainfall"]
+    harvesting_value = f"{total_water:,.0f} L"
+else:
+    rainfall_value = "-"
+    harvesting_value = "-"
 
 colA, colB = st.columns(2)
 colA.metric("Rainfall", rainfall_value)
-colB.metric("Today's Harvesting", harvesting_value)
+colB.metric("Total Harvesting", harvesting_value)
 
 # ========== Year-wise Harvesting ==========
 st.subheader("Year-wise Harvesting")
 
-# Add year column
 building_df["year"] = building_df["date"].dt.year
 
-# Group to get total by year
-year_df = building_df.groupby("year")["water_harvested_litres"].sum().reset_index()
+# Create year list from 2024 to current
+current_year = datetime.datetime.now().year
+year_list = list(range(2024, current_year + 1))
+year_list = [year for year in year_list if year in building_df["year"].unique()]
 
-# Create labels with totals
-year_labels = [f"{int(row['year'])} (Total: {row['water_harvested_litres']:.0f} L)" for _, row in year_df.iterrows()]
-selected_year_label = st.selectbox("Select Year", year_labels)
+# Show year dropdown
+selected_year = st.selectbox("Select Year", year_list)
 
-selected_year = int(selected_year_label.split()[0])
+# Filter data for selected year
 year_data = building_df[building_df["year"] == selected_year].copy()
 
-# Group by month for selected year
+# Add month column
+year_data["month_num"] = year_data["date"].dt.month
 year_data["month"] = year_data["date"].dt.strftime("%b")
-month_df = year_data.groupby("month")["water_harvested_litres"].sum().reset_index()
 
-# Sort months correctly
-month_df["month_num"] = pd.to_datetime(month_df["month"], format='%b').dt.month
-month_df = month_df.sort_values("month_num").drop(columns="month_num")
+# Group by month
+month_df = year_data.groupby(["month_num", "month"])["water_harvested_litres"].sum().reset_index()
+month_df = month_df.sort_values("month_num")
 
-# Show month-wise table
+# Display table
 st.write(f"### Monthly Harvesting for {selected_year}")
-month_table = month_df.rename(columns={"water_harvested_litres": "Total Harvesting (L)"})
+month_table = month_df[["month", "water_harvested_litres"]].rename(columns={"water_harvested_litres": "Total Harvesting (L)"})
 st.table(month_table)
 
-# Monthly bar chart
-fig1 = px.bar(month_df, x="month", y="Total Harvesting (L)",
+# Bar chart
+fig1 = px.bar(month_df, x="month", y="water_harvested_litres",
               title=f"Monthly Water Harvested in {selected_year}",
+              labels={"water_harvested_litres": "Litres"},
               color_discrete_sequence=["teal"])
 st.plotly_chart(fig1, use_container_width=True)
 
@@ -166,6 +166,7 @@ st.download_button("Download as CSV", data=csv, file_name=f"{building}_rainfall_
 
 with st.expander("Show Raw Data"):
     st.dataframe(building_df)
+
 
 
 
