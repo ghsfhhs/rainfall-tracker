@@ -11,10 +11,8 @@ import datetime
 
 # ========== Settings ==========
 BUILDING_NAME = "CEED"
-ROOFTOP_AREA = 1000  # m², example value
+ROOFTOP_AREA = 1000  # m²
 RUNOFF_COEFFICIENT = 0.85
-
-# ========== File Paths ==========
 LOG_FILE = "dashboard/rainfall_log.csv"
 
 # ========== Time ==========
@@ -29,7 +27,6 @@ def fetch_live_weather():
         r = requests.get(url, timeout=5)
         soup = BeautifulSoup(r.text, "html.parser")
         text = soup.get_text(separator=" ", strip=True)
-
         pattern = r"Temperature[:\s]*([\d]+).*?C.*?Humidity[:\s]*([\d]+).*?%.*?Rainfall[:\s]*([\d]+).*?mm"
         m = re.search(pattern, text, re.DOTALL)
         if m:
@@ -52,35 +49,36 @@ def load_log():
 
 # ========== Save Log ==========
 def save_log(df):
+    os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
     df.to_csv(LOG_FILE, index=False)
 
-# ========== App Logic ==========
+# ========== App Start ==========
 st.title("🌧️ Rainwater Harvesting Dashboard - IUST Campus (CEED)")
 
 temp, hum, rain_today = fetch_live_weather()
-if temp is None:
-    st.warning("Live weather data unavailable. Showing placeholders.")
+if rain_today is None:
+    st.warning("Live weather data unavailable. Using fallback value: 0 mm")
     rain_today = 0
 
+# Header Metrics
 col1, col2, col3, col4 = st.columns(4)
-col1.metric("Temperature", f"{temp if temp else '-'} °C")
-col2.metric("Humidity", f"{hum if hum else '-'} %")
-col3.metric("Rainfall (Today)", f"{rain_today} mm")
-col4.metric("Date", now.strftime("%d %b %Y"))
+col1.metric("🌡️ Temperature", f"{temp if temp is not None else '-'} °C")
+col2.metric("💧 Humidity", f"{hum if hum is not None else '-'} %")
+col3.metric("🌧️ Rainfall (Today)", f"{rain_today} mm")
+col4.metric("📅 Date", now.strftime("%d %b %Y"))
 
-# Calculate today's harvesting
+# ========== Today's Harvest ==========
 today_harvest = calculate_harvest(rain_today)
 
-st.subheader("Live Harvesting")
+st.subheader("Live Harvesting - CEED Building")
 colA, colB = st.columns(2)
-colA.metric("Rainfall", f"{rain_today} mm")
-colB.metric("Today's Harvesting", f"{int(today_harvest)} L")
+colA.metric("🌧️ Rainfall", f"{rain_today} mm")
+colB.metric("💧 Harvested", f"{int(today_harvest)} L")
 
-# Load existing log
+# ========== Update Log ==========
 df = load_log()
-
-# Update today's entry
 today_str = now.strftime("%Y-%m-%d")
+
 if today_str not in df['date'].astype(str).values:
     new_row = {
         'date': today_str,
@@ -91,44 +89,42 @@ if today_str not in df['date'].astype(str).values:
     df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
     save_log(df)
 
-# Process data
+# ========== Data Visualization ==========
 if not df.empty:
     df['date'] = pd.to_datetime(df['date'])
     df['year'] = df['date'].dt.year
     df['month'] = df['date'].dt.strftime('%b')
     df['month_num'] = df['date'].dt.month
 
-    # Filter by building
     df_building = df[df['building_name'] == BUILDING_NAME]
-
     selected_year = st.selectbox("Select Year", sorted(df_building['year'].unique(), reverse=True))
     year_df = df_building[df_building['year'] == selected_year]
 
-    # Convert columns to numeric
     year_df['rainfall_mm'] = pd.to_numeric(year_df['rainfall_mm'], errors='coerce')
     year_df['water_harvested_litres'] = pd.to_numeric(year_df['water_harvested_litres'], errors='coerce')
 
-    # Monthly summary
-    month_df = year_df.groupby(['month', 'month_num'])[['rainfall_mm', 'water_harvested_litres']].sum().reset_index()
-    month_df = month_df.sort_values('month_num')
+    month_df = (
+        year_df.groupby(['month', 'month_num'])[['rainfall_mm', 'water_harvested_litres']]
+        .sum()
+        .reset_index()
+        .sort_values('month_num')
+    )
 
-    # Monthly bar chart
-    st.write(f"### Monthly Water Harvesting - {BUILDING_NAME} ({selected_year})")
+    st.write(f"### 📊 Monthly Water Harvesting - {BUILDING_NAME} ({selected_year})")
     fig1 = px.bar(month_df, x='month', y='water_harvested_litres',
-                  title=f"Monthly Water Harvesting - {BUILDING_NAME} ({selected_year})",
-                  color_discrete_sequence=["teal"])
+                  labels={'water_harvested_litres': 'Litres'}, color_discrete_sequence=["teal"])
     st.plotly_chart(fig1, use_container_width=True)
 
-    # Daily line chart
     fig2 = px.line(year_df, x='date', y=['rainfall_mm', 'water_harvested_litres'],
-                   labels={"value": "Amount", "variable": "Type"},
-                   title=f"Daily Rainfall & Harvesting - {BUILDING_NAME} ({selected_year})")
+                   labels={"value": "Amount", "variable": "Metric"},
+                   title=f"📈 Daily Rainfall & Harvesting - {BUILDING_NAME} ({selected_year})")
     st.plotly_chart(fig2, use_container_width=True)
 
-    with st.expander("Show Raw Data"):
+    with st.expander("📋 Show Raw Data"):
         st.dataframe(year_df)
 else:
-    st.info("No historical rainfall data to display yet.")
+    st.info("No historical data yet.")
+
 
 
 
