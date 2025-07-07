@@ -137,40 +137,58 @@ with tab1:
 with tab2:
     st.header("📅 Year Wise Water Harvesting Summary")
 
+    # Make sure date is parsed
+    df['date'] = pd.to_datetime(df['date'], errors='coerce')
+    df = df.dropna(subset=['date'])
+
     df['year'] = df['date'].dt.year
-    df['building_name'] = df['building_name'].astype(str).str.strip().str.upper()  # normalize
+    df['month'] = df['date'].dt.strftime('%b')
+    df['month_num'] = df['date'].dt.month
+    df['building_name'] = df['building_name'].astype(str).str.strip().str.upper()
+
     df_building = df[df['building_name'] == BUILDING_NAME.upper()]
 
-    year_summary = (
-        df_building
-        .groupby('year')[['water_harvested_litres']]
-        .sum()
-        .reset_index()
-        .sort_values('year', ascending=False)
-    )
+    if df_building.empty:
+        st.warning("No data found for CEED.")
+    else:
+        # Yearly Summary Table
+        year_summary = (
+            df_building
+            .groupby('year')[['water_harvested_litres']]
+            .sum()
+            .reset_index()
+            .sort_values('year')
+        )
 
-    st.subheader("💧 Total Water Harvested by Year")
-    st.dataframe(year_summary.rename(columns={"year": "Year", "water_harvested_litres": "Total (Litres)"}))
+        st.subheader("💧 Total Water Harvested by Year")
+        st.dataframe(
+            year_summary.rename(columns={
+                "year": "Year",
+                "water_harvested_litres": "Total (Litres)"
+            }),
+            use_container_width=True
+        )
 
-    selected_year_tab2 = st.selectbox("🔽 Select Year to View Monthly Details", year_summary['year'])
+        # Dropdown for month-wise detail
+        selected_year = st.selectbox("🔽 Select Year to View Monthly Details", year_summary["year"])
 
-    monthly_breakdown = (
-        df_building[df_building['year'] == selected_year_tab2]
-        .groupby(['month', 'month_num'])[['rainfall_mm', 'water_harvested_litres']]
-        .sum()
-        .reset_index()
-        .sort_values('month_num')
-    )
+        monthly = (
+            df_building[df_building["year"] == selected_year]
+            .groupby(['month', 'month_num'])[['rainfall_mm', 'water_harvested_litres']]
+            .sum()
+            .reset_index()
+            .sort_values("month_num")
+        )
 
-    st.subheader(f"📆 Monthly Harvesting for {selected_year_tab2}")
-    st.dataframe(
-        monthly_breakdown[['month', 'rainfall_mm', 'water_harvested_litres']]
-        .rename(columns={
-            "month": "Month",
-            "rainfall_mm": "Rainfall (mm)",
-            "water_harvested_litres": "Harvested (Litres)"
-        })
-    )
+        st.subheader(f"📆 Monthly Harvesting for {selected_year}")
+        st.dataframe(
+            monthly.rename(columns={
+                "month": "Month",
+                "rainfall_mm": "Rainfall (mm)",
+                "water_harvested_litres": "Harvested (Litres)"
+            }),
+            use_container_width=True
+        )
 
 
 
