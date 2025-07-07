@@ -84,7 +84,7 @@ tab1, tab2 = st.tabs(["📈 Live Dashboard", "📅 Year Wise Harvesting"])
 
 # ========== TAB 1 ==========
 with tab1:
-    st.subheader("Live Harvesting - CEED Building")
+    st.subheader("🚨Live Harvesting - CEED Building")
     col1, col2 = st.columns(2)
     col1.metric("🌧️ Rainfall", f"{rain_today} mm")
     col2.metric("💧 Harvested", f"{int(calculate_harvest(rain_today))} L")
