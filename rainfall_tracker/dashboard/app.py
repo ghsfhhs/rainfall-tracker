@@ -138,11 +138,9 @@ with tab2:
     st.header("📅 Year Wise Water Harvesting Summary")
 
     df['year'] = df['date'].dt.year
-df['building_name'] = df['building_name'].astype(str).str.strip().str.upper()  # normalize
+    df['building_name'] = df['building_name'].astype(str).str.strip().str.upper()  # normalize
+    df_building = df[df['building_name'] == BUILDING_NAME.upper()]
 
-df_building = df[df['building_name'] == BUILDING_NAME.upper()]
-
-    # === Yearly summary ===
     year_summary = (
         df_building
         .groupby('year')[['water_harvested_litres']]
@@ -154,7 +152,6 @@ df_building = df[df['building_name'] == BUILDING_NAME.upper()]
     st.subheader("💧 Total Water Harvested by Year")
     st.dataframe(year_summary.rename(columns={"year": "Year", "water_harvested_litres": "Total (Litres)"}))
 
-    # === Monthly breakdown ===
     selected_year_tab2 = st.selectbox("🔽 Select Year to View Monthly Details", year_summary['year'])
 
     monthly_breakdown = (
@@ -174,6 +171,7 @@ df_building = df[df['building_name'] == BUILDING_NAME.upper()]
             "water_harvested_litres": "Harvested (Litres)"
         })
     )
+
 
 
 
