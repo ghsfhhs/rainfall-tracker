@@ -137,8 +137,10 @@ with tab1:
 with tab2:
     st.header("📅 Year Wise Water Harvesting Summary")
 
-    df['year'] = df['date'].dt.year  # Ensure again for tab2
-    df_building = df[df['building_name'] == BUILDING_NAME]
+    df['year'] = df['date'].dt.year
+df['building_name'] = df['building_name'].astype(str).str.strip().str.upper()  # normalize
+
+df_building = df[df['building_name'] == BUILDING_NAME.upper()]
 
     # === Yearly summary ===
     year_summary = (
