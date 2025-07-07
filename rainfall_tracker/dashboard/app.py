@@ -41,18 +41,13 @@ def calculate_harvest(rain_mm):
     return rain_mm * ROOFTOP_AREA * RUNOFF_COEFFICIENT
 
 # ========== Load Log ==========
-# ========== Load Log ==========
-# ========== Load Log ==========
 def load_log():
     if os.path.exists(LOG_FILE):
         df = pd.read_csv(LOG_FILE)
-        df['date'] = pd.to_datetime(df['date'], errors='coerce')  # ✅ Fix added
+        df['date'] = pd.to_datetime(df['date'], errors='coerce')  # ✅ Ensure datetime
         return df
     else:
         return pd.DataFrame(columns=['date', 'building_name', 'rainfall_mm', 'water_harvested_litres'])
-
-df = load_log()
-
 
 # ========== Save Log ==========
 def save_log(df):
@@ -74,7 +69,7 @@ col2.metric("💧 Humidity", f"{hum if hum is not None else '-'} %")
 col3.metric("🌧️ Rainfall (Today)", f"{rain_today} mm")
 col4.metric("📅 Date", now.strftime("%d %b %Y"))
 
-# ========== Today's Harvest ==========
+# ========== Harvest Calculation ==========
 today_harvest = calculate_harvest(rain_today)
 
 st.subheader("Live Harvesting - CEED Building")
@@ -82,12 +77,10 @@ colA, colB = st.columns(2)
 colA.metric("🌧️ Rainfall", f"{rain_today} mm")
 colB.metric("💧 Harvested", f"{int(today_harvest)} L")
 
-# ========== Update Log ==========
+# ========== Load & Update Log ==========
 df = load_log()
-
-# Fix any non-parsed or invalid dates
+df = df.dropna(subset=['date'])  # drop rows without date
 df['date'] = pd.to_datetime(df['date'], errors='coerce')
-df = df.dropna(subset=['date'])
 
 today_str = now.strftime("%Y-%m-%d")
 if today_str not in df['date'].dt.strftime("%Y-%m-%d").values:
@@ -100,22 +93,24 @@ if today_str not in df['date'].dt.strftime("%Y-%m-%d").values:
     df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
     save_log(df)
 
+# ========== Add Date Parts ==========
+df['year'] = df['date'].dt.year
+df['month'] = df['date'].dt.strftime('%b')
+df['month_num'] = df['date'].dt.month
+
+# ========== Filter for Building ==========
+df_building = df[df['building_name'] == BUILDING_NAME]
+
 # ========== Tabs ==========
 tab1, tab2 = st.tabs(["📈 Live Dashboard", "📅 Year Wise Harvesting"])
 
-# ========== TAB 1: LIVE DASHBOARD ==========
+# ========== TAB 1 ==========
 with tab1:
-    df['year'] = df['date'].dt.year
-    df['month'] = df['date'].dt.strftime('%b')
-    df['month_num'] = df['date'].dt.month
-
-    df_building = df[df['building_name'] == BUILDING_NAME]
-
     if not df_building.empty:
         selected_year = st.selectbox("Select Year", sorted(df_building['year'].unique(), reverse=True))
         year_df = df_building[df_building['year'] == selected_year]
 
-        # Ensure numeric types
+        # Safe numeric conversion
         year_df['rainfall_mm'] = pd.to_numeric(year_df['rainfall_mm'], errors='coerce')
         year_df['water_harvested_litres'] = pd.to_numeric(year_df['water_harvested_litres'], errors='coerce')
 
@@ -127,14 +122,12 @@ with tab1:
             .sort_values('month_num')
         )
 
-        # === Monthly Summary Chart ===
         st.write(f"### 📊 Monthly Water Harvesting - {BUILDING_NAME} ({selected_year})")
         fig1 = px.bar(month_df, x='month', y='water_harvested_litres',
                       labels={'water_harvested_litres': 'Litres'},
                       color_discrete_sequence=["teal"])
         st.plotly_chart(fig1, use_container_width=True)
 
-        # === Daily Line Chart ===
         fig2 = px.line(
             year_df, x='date', y=['rainfall_mm', 'water_harvested_litres'],
             labels={"value": "Amount", "variable": "Metric"},
@@ -142,19 +135,17 @@ with tab1:
         )
         st.plotly_chart(fig2, use_container_width=True)
 
-        # === Raw Data ===
         with st.expander("📋 Show Raw Data"):
             st.dataframe(year_df)
     else:
         st.warning("No data found for this building.")
 
-# ========== TAB 2: YEAR WISE HARVESTING ==========
+# ========== TAB 2 ==========
 with tab2:
     st.header("📅 Year Wise Water Harvesting Summary")
 
     year_summary = (
-        df[df['building_name'] == BUILDING_NAME]
-        .groupby('year')[['water_harvested_litres']]
+        df_building.groupby('year')[['water_harvested_litres']]
         .sum()
         .reset_index()
         .sort_values('year', ascending=False)
@@ -166,7 +157,7 @@ with tab2:
     selected_year_tab2 = st.selectbox("🔽 Select Year to View Monthly Details", year_summary['year'])
 
     monthly_breakdown = (
-        df[(df['year'] == selected_year_tab2) & (df['building_name'] == BUILDING_NAME)]
+        df_building[df_building['year'] == selected_year_tab2]
         .groupby(['month', 'month_num'])[['rainfall_mm', 'water_harvested_litres']]
         .sum()
         .reset_index()
