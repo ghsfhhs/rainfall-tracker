@@ -42,12 +42,11 @@ def calculate_harvest(rain_mm):
 
 # ========== Load Log ==========
 # ========== Load Log ==========
+# ========== Load Log ==========
 def load_log():
     if os.path.exists(LOG_FILE):
-        df = pd.read_csv(LOG_FILE, parse_dates=['date'])
-        df['date'] = pd.to_datetime(df['date'], errors='coerce')
-        df = df.dropna(subset=['date'])  # <-- Drop bad dates
-        df['building_name'] = df['building_name'].str.upper()  # Normalize names
+        df = pd.read_csv(LOG_FILE)
+        df['date'] = pd.to_datetime(df['date'], errors='coerce')  # ✅ Fix added
         return df
     else:
         return pd.DataFrame(columns=['date', 'building_name', 'rainfall_mm', 'water_harvested_litres'])
