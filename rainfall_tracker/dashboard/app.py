@@ -53,8 +53,6 @@ def load_log():
         return pd.DataFrame(columns=['date', 'building_name', 'rainfall_mm', 'water_harvested_litres'])
 
 df = load_log()
-st.write("✅ Years Found:", sorted(df['date'].dt.year.unique()))
-st.write("✅ First Few Rows:", df.head())
 
 
 # ========== Save Log ==========
