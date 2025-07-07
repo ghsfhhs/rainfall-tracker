@@ -152,7 +152,8 @@ with tab2:
     )
 
     # Monthly breakdown
-    selected_year = st.selectbox("📌 Select Year to View Monthly", year_summary["Year"])
+    selected_year = st.selectbox("📌 Select Year to View Monthly", year_summary["year"])
+
 
     monthly = (
         df_building[df_building["year"] == selected_year]
