@@ -95,6 +95,11 @@ if today_str not in df['date'].dt.strftime("%Y-%m-%d").values:
     df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
     save_log(df)
 
+# ========== Page Config ==========
+st.set_page_config(page_title="Campus Rainwater Harvesting", layout="wide")
+st_autorefresh(interval=60000, key="datarefresh")
+
+
 # ========== Tabs ==========
 tab1, tab2 = st.tabs(["📈 Live Dashboard", "📅 Year Wise Harvesting"])
 
