@@ -59,6 +59,22 @@ def save_log(df):
     os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
     df.to_csv(LOG_FILE, index=False)
 
+# ========== App Start ==========
+st.title("🌧️ Rainwater Harvesting Dashboard - IUST Campus (CEED)")
+
+temp, hum, rain_today = fetch_live_weather()
+if rain_today is None:
+    st.warning("Live weather data unavailable. Using fallback value: 0 mm")
+    rain_today = 0
+
+# Header Metrics
+col1, col2, col3, col4 = st.columns(4)
+col1.metric("🌡️ Temperature", f"{temp if temp is not None else '-'} °C")
+col2.metric("💧 Humidity", f"{hum if hum is not None else '-'} %")
+col3.metric("🌧️ Rainfall (Today)", f"{rain_today} mm")
+col4.metric("📅 Date", now.strftime("%d %b %Y"))
+
+
 # Load and prepare data
 df = load_log()
 
