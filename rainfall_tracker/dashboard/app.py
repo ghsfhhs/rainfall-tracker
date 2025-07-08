@@ -43,13 +43,9 @@ def calculate_harvest(rain_mm):
 # ========== Load Log ==========
 def load_log():
     if os.path.exists(LOG_FILE):
-        df = pd.read_csv(LOG_FILE)
-        df['date'] = pd.to_datetime(df['date'], errors='coerce')
-        df = df.dropna(subset=['date'])
-        df['year'] = df['date'].dt.year
-        df['month'] = df['date'].dt.strftime('%b')
-        df['month_num'] = df['date'].dt.month
-        df['building_name'] = df['building_name'].astype(str).str.strip().str.upper()
+        df = pd.read_csv(LOG_FILE, parse_dates=['date'])  # ✅ parse_dates ensures correct format
+        df['date'] = pd.to_datetime(df['date'], errors='coerce')  # ✅ double-check
+        df = df.dropna(subset=['date'])  # ✅ drop bad rows
         return df
     else:
         return pd.DataFrame(columns=['date', 'building_name', 'rainfall_mm', 'water_harvested_litres'])
@@ -85,12 +81,12 @@ if rain_today is None:
     rain_today = 0
 
 today_str = now.strftime("%Y-%m-%d")
-if today_str not in df['date'].dt.strftime("%Y-%m-%d").values:
+if today_str not in df['date'].astype(str).values:  # ✅ no .dt here
     new_row = {
         'date': today_str,
         'building_name': BUILDING_NAME,
         'rainfall_mm': rain_today,
-        'water_harvested_litres': int(calculate_harvest(rain_today))
+        'water_harvested_litres': int(today_harvest)
     }
     df = pd.concat([df, pd.DataFrame([new_row])], ignore_index=True)
     save_log(df)
