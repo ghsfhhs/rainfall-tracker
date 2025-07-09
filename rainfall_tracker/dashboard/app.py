@@ -200,6 +200,32 @@ with tab2:
         st.info("No monthly or yearly data available yet.")
 
 
+# ========== File Download Section ==========
+st.markdown("### ⬇️ Download Log Files")
+
+col1, col2 = st.columns(2)
+
+# Download Daily Log
+if os.path.exists(DAILY_LOG_FILE):
+    with open(DAILY_LOG_FILE, 'rb') as f:
+        col1.download_button(
+            label="📅 Download Daily Log",
+            data=f,
+            file_name="daily_log.csv",
+            mime="text/csv"
+        )
+
+# Download Monthly Log
+if os.path.exists(MONTHLY_LOG_FILE):
+    with open(MONTHLY_LOG_FILE, 'rb') as f:
+        col2.download_button(
+            label="📆 Download Monthly Log",
+            data=f,
+            file_name="rainfall_log.csv",
+            mime="text/csv"
+        )
+
+
 
 
 
