@@ -17,6 +17,7 @@ LOG_FILE = "dashboard/rainfall_log.csv"
 # ========== Time ==========
 ist = timezone('Asia/Kolkata')
 now = datetime.datetime.now(ist)
+today_str = now.strftime("%Y-%m-%d")  # ✅ Add this line
 st.write("🕒 Current Time:", now.strftime("%Y-%m-%d %H:%M:%S"))
 
 # ========== Fetch Live Weather ==========
