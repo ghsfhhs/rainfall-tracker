@@ -156,7 +156,8 @@ with tab2:
     st.dataframe(year_summary.rename(columns={"year": "Year", "water_harvested_litres": "Total (Litres)"}))
 
     if not year_summary.empty:
-        selected_year_tab2 = st.selectbox("📌 Select Year to View Monthly", year_summary["Year"])
+        selected_year_tab2 = st.selectbox("📌 Select Year to View Monthly", year_summary["year"])
+
 
         monthly_breakdown = (
             df[(df['year'] == selected_year_tab2) & (df['building_name'] == BUILDING_NAME)]
