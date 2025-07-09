@@ -71,12 +71,7 @@ col3.metric("🌧️ Rainfall (Today)", f"{rain_today} mm")
 col4.metric("📅 Date", now.strftime("%d %b %Y"))
 
 # ========== Today's Harvest ==========
-today_harvest = calculate_harvest(rain_today)
 
-st.subheader("Live Harvesting - CEED Building")
-colA, colB = st.columns(2)
-colA.metric("🌧️ Rainfall", f"{rain_today} mm")
-colB.metric("💧 Harvested", f"{int(today_harvest)} L")
 
 
 
