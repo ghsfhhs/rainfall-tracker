@@ -124,6 +124,7 @@ with tab1:
     col2.metric("💧 Harvested", f"{int(today_harvest)} L")
 
     df_plot = df_daily.copy()
+    df_plot['date'] = pd.to_datetime(df_plot['date'], errors='coerce')  # 🔧 Add this line
     df_plot['year'] = df_plot['date'].dt.year
     df_plot['month'] = df_plot['date'].dt.strftime('%b')
     df_plot['month_num'] = df_plot['date'].dt.month
@@ -165,6 +166,7 @@ with tab2:
     st.header("📅 Year Wise Water Harvesting Summary")
 
     df_summary = df_monthly.copy()
+    df_summary['date'] = pd.to_datetime(df_summary['date'], errors='coerce')
     df_summary['year'] = df_summary['date'].dt.year
     df_summary['month'] = df_summary['date'].dt.strftime('%b')
     df_summary['month_num'] = df_summary['date'].dt.month
