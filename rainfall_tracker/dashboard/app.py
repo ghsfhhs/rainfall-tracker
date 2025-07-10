@@ -46,7 +46,8 @@ def load_log(file_path):
     if os.path.exists(file_path):
         df = pd.read_csv(file_path)
         df['date'] = pd.to_datetime(df['date'], errors='coerce')
-        return df.dropna(subset=['date'])
+        df = df.dropna(subset=['date'])  # ensure date is datetime
+        return df
     return pd.DataFrame(columns=['date', 'building_name', 'rainfall_mm', 'water_harvested_litres'])
 
 # ========== Save Logs ==========
@@ -67,7 +68,7 @@ if rain_today is None:
 today_harvest = calculate_harvest(rain_today)
 
 # Add to daily log
-if today_str not in df_daily['date'].dt.strftime("%Y-%m-%d").values:
+if not (df_daily['date'].dt.date == now.date()).any():
     new_daily_row = {
         'date': pd.to_datetime(today_str),
         'building_name': BUILDING_NAME,
@@ -77,7 +78,7 @@ if today_str not in df_daily['date'].dt.strftime("%Y-%m-%d").values:
     df_daily = pd.concat([df_daily, pd.DataFrame([new_daily_row])], ignore_index=True)
     save_log(df_daily, DAILY_LOG_FILE)
 
-# Update monthly log if it's the last day of month
+# Update monthly log if today is 1st of month
 if now.day == 1 and len(df_daily) > 0:
     prev_month = (now.replace(day=1) - datetime.timedelta(days=1)).month
     prev_year = (now.replace(day=1) - datetime.timedelta(days=1)).year
@@ -87,9 +88,7 @@ if now.day == 1 and len(df_daily) > 0:
         total_harvest = df_prev_month['water_harvested_litres'].sum()
         summary_date = f"{prev_year}-{prev_month:02d}-01"
 
-        # Prevent duplicate month entry
-        existing = df_monthly['date'].dt.strftime("%Y-%m").isin([f"{prev_year}-{prev_month:02d}"]).any()
-        if not existing:
+        if not df_monthly['date'].dt.strftime("%Y-%m").isin([f"{prev_year}-{prev_month:02d}"]).any():
             new_monthly_row = {
                 'date': pd.to_datetime(summary_date),
                 'building_name': BUILDING_NAME,
@@ -198,7 +197,6 @@ with tab2:
         )
     else:
         st.info("No monthly or yearly data available yet.")
-
 
 # ========== File Download Section ==========
 st.markdown("### ⬇️ Download Log Files")
