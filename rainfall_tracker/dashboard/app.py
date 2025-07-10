@@ -67,8 +67,13 @@ if rain_today is None:
 
 today_harvest = calculate_harvest(rain_today)
 
-# Add to daily log
-if not (df_daily['date'].dt.date == now.date()).any():
+# Ensure dates are datetime and valid
+df_daily['date'] = pd.to_datetime(df_daily['date'], errors='coerce')
+df_daily = df_daily.dropna(subset=['date'])
+df_daily['date_only'] = df_daily['date'].dt.date
+
+# Add today's log only if not already present
+if now.date() not in df_daily['date_only'].values:
     new_daily_row = {
         'date': pd.to_datetime(today_str),
         'building_name': BUILDING_NAME,
@@ -76,7 +81,8 @@ if not (df_daily['date'].dt.date == now.date()).any():
         'water_harvested_litres': int(today_harvest)
     }
     df_daily = pd.concat([df_daily, pd.DataFrame([new_daily_row])], ignore_index=True)
-    save_log(df_daily, DAILY_LOG_FILE)
+    save_log(df_daily.drop(columns=['date_only']), DAILY_LOG_FILE)  # remove helper column before saving
+
 
 # Update monthly log if today is 1st of month
 if now.day == 1 and len(df_daily) > 0:
