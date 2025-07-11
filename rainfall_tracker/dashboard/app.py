@@ -155,11 +155,16 @@ with tab1:
 
 # ========== TAB 2 ==========
 with tab2:
-    st.header("Year Wise Water Harvesting Summary")
+    st.header("📅 Year Wise Water Harvesting Summary")
+
     df_summary = df_monthly.copy()
+    df_summary['date'] = pd.to_datetime(df_summary['date'], errors='coerce')  # ✅ Ensure datetime
+    df_summary = df_summary.dropna(subset=['date'])  # ✅ Drop invalid dates if any
+
     df_summary['year'] = df_summary['date'].dt.year
     df_summary['month'] = df_summary['date'].dt.strftime('%b')
     df_summary['month_num'] = df_summary['date'].dt.month
+
     df_summary = df_summary[df_summary['building_name'] == BUILDING_NAME]
 
     if not df_summary.empty:
