@@ -104,23 +104,23 @@ if now.day == 1 and len(df_daily) > 0:
             save_log(df_monthly, MONTHLY_LOG_FILE)
 
 # ========== UI ==========
-st.title("\ud83c\udf27\ufe0f Rainwater Harvesting Dashboard - IUST Campus (CEED)")
+st.title("Rainwater Harvesting Dashboard - IUST Campus (CEED)")
 
 col1, col2, col3, col4 = st.columns(4)
-col1.metric("\ud83c\udf21\ufe0f Temperature", f"{temp if temp is not None else '-'} °C")
-col2.metric("\ud83d\udca7 Humidity", f"{hum if hum is not None else '-'} %")
-col3.metric("\ud83c\udf27\ufe0f Rainfall (Today)", f"{rain_today} mm")
-col4.metric("\ud83d\uddd3\ufe0f Date", now.strftime("%d %b %Y"))
+col1.metric("Temperature", f"{temp if temp is not None else '-'} °C")
+col2.metric("Humidity", f"{hum if hum is not None else '-'} %")
+col3.metric("Rainfall (Today)", f"{rain_today} mm")
+col4.metric("Date", now.strftime("%d %b %Y"))
 
 # ========== Tabs ==========
-tab1, tab2 = st.tabs(["\ud83d\udcc8 Live Dashboard", "\ud83d\uddd3\ufe0f Year Wise Harvesting"])
+tab1, tab2 = st.tabs(["Live Dashboard", "Year Wise Harvesting"])
 
 # ========== TAB 1 ==========
 with tab1:
     st.subheader("Live Harvesting - CEED Building")
     col1, col2 = st.columns(2)
-    col1.metric("\ud83c\udf27\ufe0f Rainfall", f"{rain_today} mm")
-    col2.metric("\ud83d\udca7 Harvested", f"{int(today_harvest)} L")
+    col1.metric("Rainfall", f"{rain_today} mm")
+    col2.metric("Harvested", f"{int(today_harvest)} L")
 
     df_plot = df_daily.copy()
     df_plot['year'] = df_plot['date'].dt.year
@@ -130,7 +130,7 @@ with tab1:
     df_building = df_plot[df_plot['building_name'] == BUILDING_NAME]
 
     if not df_building.empty:
-        selected_year = st.selectbox("\ud83d\uddd3\ufe0f Select Year", sorted(df_building['year'].unique(), reverse=True))
+        selected_year = st.selectbox("Select Year", sorted(df_building['year'].unique(), reverse=True))
         year_df = df_building[df_building['year'] == selected_year]
 
         year_df['rainfall_mm'] = pd.to_numeric(year_df['rainfall_mm'], errors='coerce')
@@ -143,19 +143,19 @@ with tab1:
             .sort_values('month_num')
         )
 
-        st.write(f"### \ud83d\udcca Monthly Water Harvesting - {BUILDING_NAME} ({selected_year})")
+        st.write(f"Monthly Water Harvesting - {BUILDING_NAME} ({selected_year})")
         fig1 = px.bar(month_df, x='month', y='water_harvested_litres', labels={'water_harvested_litres': 'Litres'}, color_discrete_sequence=["teal"])
         st.plotly_chart(fig1, use_container_width=True)
 
         fig2 = px.line(year_df, x='date', y=['rainfall_mm', 'water_harvested_litres'], labels={"value": "Amount", "variable": "Metric"}, title=f"\ud83d\udcc8 Daily Rainfall & Harvesting - {BUILDING_NAME} ({selected_year})")
         st.plotly_chart(fig2, use_container_width=True)
 
-        with st.expander("\ud83d\udccb Show Raw Daily Data"):
+        with st.expander("Show Raw Daily Data"):
             st.dataframe(year_df)
 
 # ========== TAB 2 ==========
 with tab2:
-    st.header("\ud83d\uddd3\ufe0f Year Wise Water Harvesting Summary")
+    st.header("Year Wise Water Harvesting Summary")
     df_summary = df_monthly.copy()
     df_summary['year'] = df_summary['date'].dt.year
     df_summary['month'] = df_summary['date'].dt.strftime('%b')
@@ -170,10 +170,10 @@ with tab2:
             .sort_values('year', ascending=False)
         )
 
-        st.subheader("\ud83d\udca7 Total Water Harvested by Year")
+        st.subheader("Total Water Harvested by Year")
         st.dataframe(year_summary.rename(columns={"year": "Year", "water_harvested_litres": "Total (Litres)"}))
 
-        selected_year_tab2 = st.selectbox("\ud83d\udd50 Select Year to View Monthly", year_summary['Year'])
+        selected_year_tab2 = st.selectbox("Select Year to View Monthly", year_summary['Year'])
 
         monthly_breakdown = (
             df_summary[df_summary['year'] == selected_year_tab2]
@@ -183,7 +183,7 @@ with tab2:
             .sort_values('month_num')
         )
 
-        st.subheader(f"\ud83d\uddd3\ufe0f Monthly Harvesting for {selected_year_tab2}")
+        st.subheader(f"Monthly Harvesting for {selected_year_tab2}")
         st.dataframe(
             monthly_breakdown[['month', 'rainfall_mm', 'water_harvested_litres']].rename(columns={
                 "month": "Month",
@@ -195,13 +195,13 @@ with tab2:
         st.info("No monthly or yearly data available yet.")
 
 # ========== File Download Section ==========
-st.markdown("### \u2b07\ufe0f Download Log Files")
+st.markdown("Download Log Files")
 col1, col2 = st.columns(2)
 
 if os.path.exists(DAILY_LOG_FILE):
     with open(DAILY_LOG_FILE, 'rb') as f:
         col1.download_button(
-            label="\ud83d\uddd3\ufe0f Download Daily Log",
+            label="Download Daily Log",
             data=f,
             file_name="daily_log.csv",
             mime="text/csv"
@@ -210,7 +210,7 @@ if os.path.exists(DAILY_LOG_FILE):
 if os.path.exists(MONTHLY_LOG_FILE):
     with open(MONTHLY_LOG_FILE, 'rb') as f:
         col2.download_button(
-            label="\ud83d\udcc6 Download Monthly Log",
+            label="Download Monthly Log",
             data=f,
             file_name="rainfall_log.csv",
             mime="text/csv"
