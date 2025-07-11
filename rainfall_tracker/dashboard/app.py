@@ -7,6 +7,14 @@ from bs4 import BeautifulSoup
 import re
 from pytz import timezone
 import datetime
+from streamlit_autorefresh import st_autorefresh
+
+
+# Auto-refresh every 60 seconds
+st_autorefresh(interval=60 * 1000, key="auto-refresh")
+
+
+
 
 # ========== Settings ==========
 BUILDING_NAME = "CEED"
