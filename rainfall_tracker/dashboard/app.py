@@ -15,7 +15,6 @@ st_autorefresh(interval=60 * 1000, key="auto-refresh")
 
 
 
-
 # ========== Settings ==========
 BUILDING_NAME = "CEED"
 ROOFTOP_AREA = 1000  # m²
