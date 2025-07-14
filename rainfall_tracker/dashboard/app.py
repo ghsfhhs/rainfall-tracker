@@ -71,8 +71,11 @@ if rain_today is None:
 today_harvest = calculate_harvest(rain_today)
 
 # ========== Delayed Daily Logging at 11:55 PM ==========
+df_daily['date'] = pd.to_datetime(df_daily['date'], errors='coerce')
+df_daily = df_daily.dropna(subset=['date'])
+df_daily['date_only'] = df_daily['date'].dt.date
+
 if now.hour == 23 and now.minute >= 55:
-    df_daily['date_only'] = df_daily['date'].dt.date
     if now.date() not in df_daily['date_only'].values:
         new_daily_row = {
             'date': pd.to_datetime(today_str),
@@ -80,8 +83,8 @@ if now.hour == 23 and now.minute >= 55:
             'rainfall_mm': rain_today,
             'water_harvested_litres': int(today_harvest)
         }
-        df_daily = pd.concat([df_daily, pd.DataFrame([new_daily_row])], ignore_index=True)
-        save_log(df_daily.drop(columns=['date_only']), DAILY_LOG_FILE)
+        df_daily = pd.concat([df_daily.drop(columns=['date_only']), pd.DataFrame([new_daily_row])], ignore_index=True)
+        save_log(df_daily, DAILY_LOG_FILE)
 
 # ========== Update Monthly Log if New Month Starts ==========
 if now.day == 1 and len(df_daily) > 0:
@@ -123,6 +126,8 @@ with tab1:
     col2.metric("Harvested", f"{int(today_harvest)} L")
 
     df_plot = df_daily.copy()
+    df_plot['date'] = pd.to_datetime(df_plot['date'], errors='coerce')
+    df_plot = df_plot.dropna(subset=['date'])
     df_plot['year'] = df_plot['date'].dt.year
     df_plot['month'] = df_plot['date'].dt.strftime('%b')
     df_plot['month_num'] = df_plot['date'].dt.month
@@ -147,7 +152,7 @@ with tab1:
         fig1 = px.bar(month_df, x='month', y='water_harvested_litres', labels={'water_harvested_litres': 'Litres'}, color_discrete_sequence=["teal"])
         st.plotly_chart(fig1, use_container_width=True)
 
-        fig2 = px.line(year_df, x='date', y=['rainfall_mm', 'water_harvested_litres'], labels={"value": "Amount", "variable": "Metric"}, title=f"\ud83d\udcc8 Daily Rainfall & Harvesting - {BUILDING_NAME} ({selected_year})")
+        fig2 = px.line(year_df, x='date', y=['rainfall_mm', 'water_harvested_litres'], labels={"value": "Amount", "variable": "Metric"}, title=f"📈 Daily Rainfall & Harvesting - {BUILDING_NAME} ({selected_year})")
         st.plotly_chart(fig2, use_container_width=True)
 
         with st.expander("Show Raw Daily Data"):
@@ -158,8 +163,8 @@ with tab2:
     st.header("📅 Year Wise Water Harvesting Summary")
 
     df_summary = df_monthly.copy()
-    df_summary['date'] = pd.to_datetime(df_summary['date'], errors='coerce')  # ✅ Ensure datetime
-    df_summary = df_summary.dropna(subset=['date'])  # ✅ Drop invalid dates if any
+    df_summary['date'] = pd.to_datetime(df_summary['date'], errors='coerce')
+    df_summary = df_summary.dropna(subset=['date'])
 
     df_summary['year'] = df_summary['date'].dt.year
     df_summary['month'] = df_summary['date'].dt.strftime('%b')
